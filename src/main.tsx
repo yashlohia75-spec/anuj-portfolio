@@ -1,9 +1,40 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AnimatePresence, motion, useMotionValue, useScroll, useSpring, useTransform } from "framer-motion";
-import { brandSlug, media, MediaItem, projectOrder } from "./media";
+import { brandSlug, media, MediaItem, projectOrder, visibleProjectsSequence } from "./media";
 import "./styles.css";
 
+/* ═══════════════════════════════════════════
+   APPROVED CANONICAL PROJECT SEQUENCE & REPRESENTATIVE ART
+   1. Trident Group
+   2. Standard Electricals
+   3. Indo Farm
+   4. Shyamoli
+   5. Halonix
+   6. Education
+   7. Havells
+   8. Humsafar
+   9. Hospitality
+   (Su-Kam remains strictly hidden from visible index)
+   ═══════════════════════════════════════════ */
+export const VISIBLE_PROJECT_SEQUENCE = visibleProjectsSequence;
+
+export const REPRESENTATIVE_MEDIA: Record<string, string> = {
+  "Trident Group": "tr-01",
+  "Standard Electricals": "se-01",
+  "Indo Farm": "if-01",
+  "Shyamoli": "sh-08",
+  "Halonix": "ha-v6",
+  Education: "bu-01",
+  "Bahra University": "bu-01",
+  Havells: "hv-01",
+  Humsafar: "hu-01",
+  Hospitality: "ho-01",
+};
+
+/* ═══════════════════════════════════════════
+   PROJECT METADATA & CONFIGURATION
+   ═══════════════════════════════════════════ */
 const meta: Record<
   string,
   { tag: string; intro: string; accent: string; year: string; focus: string; note?: string }
@@ -47,6 +78,14 @@ const meta: Record<
     year: "2024 — 2025",
     focus: "Illumination Films · Motion Graphics · High-Contrast Stills",
     note: "Light-to-dark contrast · Ambient glow stages · Radiant reveals",
+  },
+  Education: {
+    tag: "EDUCATION / FESTIVALS / MOTION",
+    intro: "Turning institutional communication into moments people notice.",
+    accent: "#9c86b8",
+    year: "2024 — 2025",
+    focus: "University Identity · Campus Culture · Festive Media",
+    note: "Youth energy · Academic dignity · Vibrant contemporary rhythm",
   },
   "Bahra University": {
     tag: "EDUCATION / FESTIVALS / MOTION",
@@ -92,15 +131,128 @@ const meta: Record<
 function slug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
-function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
+export function getProjectBySlug(s: string): string | null {
+  const clean = s.toLowerCase().trim();
+  if (clean === "humsafar") return "Humsafar";
+  if (clean === "trident" || clean === "trident-group") return "Trident Group";
+  if (clean === "halonix") return "Halonix";
+  if (clean === "havells") return "Havells";
+  if (clean === "shyamoli") return "Shyamoli";
+  if (clean === "standard" || clean === "standard-electricals") return "Standard Electricals";
+  if (clean === "indofarm" || clean === "indo-farm") return "Indo Farm";
+  if (clean === "education" || clean === "bahra" || clean === "bahra-university") return "Education";
+  if (clean === "hospitality") return "Hospitality";
+  if (clean === "su-kam" || clean === "sukam") return "Su-Kam";
+  for (const p of projectOrder) {
+    if (slug(p) === clean || brandSlug(p) === clean) return p;
+  }
+  return null;
 }
 
 /* ═══════════════════════════════════════════
-   PHASE 1 (LOCKED): Loader Choreography
-   BLACK → tiny orbital point → sun appears
-   → progress line → "INITIALISING IMAGINATION"
-   → subtle eye/blink moment → hero reveal
+   LIGHTBOX CONTEXT
+   ═══════════════════════════════════════════ */
+interface LightboxContextType {
+  openLightbox: (item: MediaItem, projectItems?: MediaItem[]) => void;
+}
+const LightboxContext = React.createContext<LightboxContextType>({
+  openLightbox: () => {},
+});
+
+/* ═══════════════════════════════════════════
+   ROUTING LOGIC & SEO
+   ═══════════════════════════════════════════ */
+type Route =
+  | { page: "home" }
+  | { page: "work" }
+  | { page: "project"; project: string }
+  | { page: "process" }
+  | { page: "info" }
+  | { page: "contact" }
+  | { page: "not-found" };
+
+function parsePath(path: string): Route {
+  const clean = path.replace(/\/+$/, "") || "/";
+  if (clean === "" || clean === "/") return { page: "home" };
+  if (clean === "/work") return { page: "work" };
+  if (clean.startsWith("/work/")) {
+    const projectSlug = clean.replace("/work/", "");
+    const project = getProjectBySlug(projectSlug);
+    if (project && VISIBLE_PROJECT_SEQUENCE.includes(project)) {
+      return { page: "project", project };
+    }
+    return { page: "not-found" };
+  }
+  if (clean === "/process") return { page: "process" };
+  if (clean === "/info") return { page: "info" };
+  if (clean === "/contact") return { page: "contact" };
+  return { page: "not-found" };
+}
+
+function useDocumentSEO(route: Route) {
+  useEffect(() => {
+    let title = "Anuj — Creative Supervisor / Visual Designer";
+    let desc =
+      "Portfolio of Anuj — Creative Supervisor and Visual Designer specializing in brand campaigns, motion direction, and visual storytelling.";
+
+    if (route.page === "work") {
+      title = "Work — Anuj";
+      desc = "Selected brand campaigns, motion direction, and visual design by Anuj.";
+    } else if (route.page === "project") {
+      const pMeta = meta[route.project];
+      title = `${route.project} — Anuj`;
+      desc = pMeta?.intro
+        ? `${route.project} — ${pMeta.intro} Visual design by Anuj.`
+        : `${route.project} — Selected visual design by Anuj.`;
+    } else if (route.page === "info") {
+      title = "Info — Anuj";
+      desc = "Background, tools, and visual philosophy of Anuj — Creative Supervisor and Visual Designer.";
+    } else if (route.page === "contact") {
+      title = "Contact — Anuj";
+      desc = "Get in touch with Anuj for visual design, motion direction, and creative collaborations.";
+    } else if (route.page === "process") {
+      title = "Process — Anuj";
+      desc = "Creative methodology and visual exploration process.";
+    } else if (route.page === "not-found") {
+      title = "404 — Anuj";
+      desc = "This page wandered off.";
+    }
+
+    document.title = title;
+
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement("meta");
+      metaDesc.setAttribute("name", "description");
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.setAttribute("content", desc);
+
+    let ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute("content", title);
+
+    let ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute("content", desc);
+
+    let ogUrl = document.querySelector('meta[property="og:url"]');
+    if (!ogUrl) {
+      ogUrl = document.createElement("meta");
+      ogUrl.setAttribute("property", "og:url");
+      document.head.appendChild(ogUrl);
+    }
+    ogUrl.setAttribute("content", window.location.href);
+
+    let twTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twTitle) twTitle.setAttribute("content", title);
+
+    let twDesc = document.querySelector('meta[name="twitter:description"]');
+    if (twDesc) twDesc.setAttribute("content", desc);
+  }, [route]);
+}
+
+/* ═══════════════════════════════════════════
+   LOADER CHOREOGRAPHY
    ═══════════════════════════════════════════ */
 function Loader({ done }: { done: boolean }) {
   return (
@@ -197,7 +349,6 @@ function Loader({ done }: { done: boolean }) {
             transition={{ delay: 0.3, duration: 0.3 }}
           >
             <span>CREATIVE SUPERVISOR / VISUAL DESIGNER</span>
-            <span>01 / 09</span>
             <span>100%</span>
           </motion.div>
         </motion.div>
@@ -207,7 +358,7 @@ function Loader({ done }: { done: boolean }) {
 }
 
 /* ═══════════════════════════════════════════
-   PHASE 1 (LOCKED): Eye System
+   EYE SYSTEM
    ═══════════════════════════════════════════ */
 function SingleEye({
   side,
@@ -357,8 +508,7 @@ function Eyes() {
 }
 
 /* ═══════════════════════════════════════════
-   PHASE 1 (LOCKED): Celestial System
-   Scroll-linked: becomes quieter during work (0.08–0.10 opacity)
+   CELESTIAL SYSTEM
    ═══════════════════════════════════════════ */
 function SolarSystem() {
   const { scrollYProgress } = useScroll();
@@ -370,7 +520,6 @@ function SolarSystem() {
   const r5 = useTransform(scrollYProgress, [0, 1], [0, 290]);
 
   const scale = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0.92, 1, 1.05, 0.9]);
-  // Quieter presence during work sections so artwork always takes center stage
   const opacity = useTransform(
     scrollYProgress,
     [0, 0.08, 0.2, 0.85, 1],
@@ -406,7 +555,7 @@ function SolarSystem() {
 }
 
 /* ═══════════════════════════════════════════
-   Custom Cursor
+   CUSTOM CURSOR
    ═══════════════════════════════════════════ */
 function Cursor() {
   const x = useMotionValue(-100);
@@ -440,9 +589,778 @@ function Cursor() {
 }
 
 /* ═══════════════════════════════════════════
-   PHASE 1 (LOCKED): Hero Opening Sequence
+   SITE NAVIGATION
    ═══════════════════════════════════════════ */
-function Hero({ ready }: { ready: boolean }) {
+function SiteNavigation({
+  currentRoute,
+  onNavigate,
+}: {
+  currentRoute: Route;
+  onNavigate: (path: string) => void;
+}) {
+  const isWorkActive = currentRoute.page === "work" || currentRoute.page === "project";
+
+  return (
+    <nav className="nav">
+      <button
+        data-cursor="HOME"
+        onClick={() => onNavigate("/")}
+        className={currentRoute.page === "home" ? "is-active" : ""}
+      >
+        ANUJ®
+      </button>
+      <div>
+        <button
+          data-cursor="WORK"
+          onClick={() => onNavigate("/work")}
+          className={isWorkActive ? "is-active" : ""}
+        >
+          WORK
+        </button>
+        <button
+          data-cursor="PROCESS"
+          onClick={() => onNavigate("/process")}
+          className={currentRoute.page === "process" ? "is-active" : ""}
+        >
+          PROCESS
+        </button>
+        <button
+          data-cursor="INFO"
+          onClick={() => onNavigate("/info")}
+          className={currentRoute.page === "info" ? "is-active" : ""}
+        >
+          INFO
+        </button>
+        <button
+          data-cursor="CONTACT"
+          onClick={() => onNavigate("/contact")}
+          className={currentRoute.page === "contact" ? "is-active" : ""}
+        >
+          CONTACT
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   CUSTOM HTML5 VIDEO PLAYER (FOR LIGHTBOX)
+   ═══════════════════════════════════════════ */
+function CustomVideoPlayer({ item }: { item: MediaItem }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [muted, setMuted] = useState(false);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.play()
+      .then(() => setPlaying(true))
+      .catch(() => {
+        // Fallback with mute if browser autoplay policy blocks unmuted audio
+        v.muted = true;
+        setMuted(true);
+        v.play().then(() => setPlaying(true)).catch(() => {});
+      });
+  }, [item.videoSrc]);
+
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      v.play();
+      setPlaying(true);
+    } else {
+      v.pause();
+      setPlaying(false);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    setCurrentTime(v.currentTime);
+    if (!duration && v.duration) setDuration(v.duration);
+  };
+
+  const handleLoadedMetadata = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    setDuration(v.duration);
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const v = videoRef.current;
+    if (!v || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    v.currentTime = pos * duration;
+    setCurrentTime(v.currentTime);
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    setVolume(val);
+    if (videoRef.current) {
+      videoRef.current.volume = val;
+      videoRef.current.muted = val === 0;
+      setMuted(val === 0);
+    }
+  };
+
+  const toggleMute = () => {
+    if (!videoRef.current) return;
+    const next = !muted;
+    videoRef.current.muted = next;
+    setMuted(next);
+  };
+
+  const toggleFullscreen = () => {
+    if (!wrapperRef.current) return;
+    if (!document.fullscreenElement) {
+      wrapperRef.current.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  const formatTime = (secs: number) => {
+    if (!secs || isNaN(secs)) return "00:00";
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  };
+
+  const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div ref={wrapperRef} className="lightbox-video-wrapper">
+      <video
+        ref={videoRef}
+        src={item.videoSrc}
+        poster={item.src || undefined}
+        className="lightbox-video"
+        playsInline
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        onClick={togglePlay}
+      />
+      <div className="video-control-bar">
+        <button
+          className="v-btn"
+          onClick={togglePlay}
+          title={playing ? "Pause" : "Play"}
+          aria-label={playing ? "Pause" : "Play"}
+        >
+          {playing ? "⏸" : "▶"}
+        </button>
+
+        <div className="v-scrubber" onClick={handleSeek}>
+          <div className="v-track">
+            <div className="v-progress" style={{ width: `${progressPct}%` }} />
+          </div>
+        </div>
+
+        <span className="v-time">
+          {formatTime(currentTime)} / {formatTime(duration)}
+        </span>
+
+        <div className="v-vol-group">
+          <button className="v-btn" onClick={toggleMute} title={muted ? "Unmute" : "Mute"}>
+            {muted || volume === 0 ? "🔇" : "🔊"}
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={muted ? 0 : volume}
+            onChange={handleVolumeChange}
+            className="v-vol-slider"
+            title="Volume"
+          />
+        </div>
+
+        <button className="v-btn" onClick={toggleFullscreen} title="Fullscreen">
+          ⛶
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   PREMIUM MEDIA LIGHTBOX MODAL
+   ═══════════════════════════════════════════ */
+function MediaLightbox({
+  item,
+  items,
+  onClose,
+  onPrev,
+  onNext,
+}: {
+  item: MediaItem;
+  items: MediaItem[];
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  const currentIndex = items.findIndex((x) => x.id === item.id);
+  const total = items.length;
+  const pMeta = meta[item.project];
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft") onPrev();
+      else if (e.key === "ArrowRight") onNext();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    const origOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = origOverflow;
+    };
+  }, [onClose, onPrev, onNext]);
+
+  return (
+    <motion.div
+      className="lightbox-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.24 }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="lightbox-topbar">
+        <div className="lightbox-topbar-left">
+          <span className="lightbox-project-name">{item.project.toUpperCase()}</span>
+          {pMeta && <span>· {pMeta.tag}</span>}
+          {total > 1 && currentIndex >= 0 && (
+            <span className="lightbox-counter">
+              {String(currentIndex + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+            </span>
+          )}
+        </div>
+        <button className="lightbox-close-btn" onClick={onClose} data-cursor="CLOSE">
+          CLOSE ✕
+        </button>
+      </div>
+
+      <div
+        className="lightbox-main"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        {total > 1 && (
+          <button className="lightbox-nav-btn" onClick={onPrev} title="Previous (←)" data-cursor="PREV">
+            ←
+          </button>
+        )}
+
+        <div
+          className="lightbox-stage"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.2 }}
+              style={{ display: "contents" }}
+            >
+              {item.type === "video" ? (
+                <CustomVideoPlayer item={item} />
+              ) : (
+                <img src={item.src} alt={`${item.project} creative`} className="lightbox-img" />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {total > 1 && (
+          <button className="lightbox-nav-btn" onClick={onNext} title="Next (→)" data-cursor="NEXT">
+            →
+          </button>
+        )}
+      </div>
+
+      <div className="lightbox-footer">
+        <span className="lightbox-caption-text">
+          {item.source ? item.source.replace(/[-_]/g, " ").replace(/\.[^/.]+$/, "") : item.project}
+        </span>
+        <span className="lightbox-key-hint">ESC TO CLOSE · ← → TO NAVIGATE</span>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   HIGH-PERFORMANCE MEDIA CARD
+   - Clickable: Opens Media Lightbox
+   - Aspect ratio preserved, no stretch or vertical takeover
+   ═══════════════════════════════════════════ */
+function MediaCard({
+  item,
+  variant = "feature",
+  aspect,
+  priority = false,
+  caption,
+  projectItems,
+}: {
+  key?: React.Key;
+  item: MediaItem;
+  variant?: "hero" | "feature" | "split" | "portrait" | "grid";
+  aspect?: "landscape" | "portrait" | "square" | "video";
+  priority?: boolean;
+  caption?: string;
+  projectItems?: MediaItem[];
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [inView, setInView] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const { openLightbox } = React.useContext(LightboxContext);
+
+  const effectiveAspect =
+    aspect ||
+    (item.orientation === "landscape"
+      ? item.type === "video"
+        ? "video"
+        : "landscape"
+      : item.orientation);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setInView(entry.isIntersecting);
+        if (item.type === "video" && videoRef.current) {
+          if (entry.isIntersecting) {
+            videoRef.current.play().catch(() => {});
+            setPlaying(true);
+          } else {
+            videoRef.current.pause();
+            setPlaying(false);
+          }
+        }
+      },
+      { threshold: 0.15, rootMargin: "60px 0px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [item.type]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`media-card media-${variant} media-aspect-${effectiveAspect} ${
+        inView ? "media-in-view" : ""
+      }`}
+      data-cursor={item.type === "video" ? "PLAY" : "VIEW"}
+      onClick={() => openLightbox(item, projectItems)}
+    >
+      <div className="media-frame">
+        <span className="media-interactive-cue">
+          {item.type === "video" ? "▶ PREVIEW" : "VIEW"}
+        </span>
+        {item.type === "video" ? (
+          <video
+            ref={videoRef}
+            src={item.videoSrc}
+            poster={item.src || undefined}
+            muted
+            loop
+            playsInline
+            preload={priority ? "auto" : "metadata"}
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+          />
+        ) : (
+          <img
+            src={item.src}
+            alt={`${item.project} creative`}
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
+          />
+        )}
+        <div className="media-light-sweep" />
+      </div>
+
+      <div className="media-meta">
+        <div className="media-meta-left">
+          {caption && <span className="media-caption">{caption}</span>}
+        </div>
+        <span className="media-type-badge">
+          {item.type === "video" ? "▶ MOTION" : "STILL"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   PROJECT SINGLE ENTRY HEADER
+   ═══════════════════════════════════════════ */
+function ProjectIntro({
+  project,
+  index,
+  totalCount,
+  projectMeta,
+  itemsCount,
+  onBackToWork,
+}: {
+  project: string;
+  index?: number;
+  totalCount?: number;
+  projectMeta: (typeof meta)[string];
+  itemsCount?: number;
+  onBackToWork?: () => void;
+}) {
+  return (
+    <header className="project-intro">
+      <div className="project-marker">
+        {onBackToWork && (
+          <button
+            className="marker-index-btn"
+            onClick={onBackToWork}
+            data-cursor="BACK"
+          >
+            ← WORK
+          </button>
+        )}
+      </div>
+
+      <div className="project-title-grid">
+        <h1 className="project-hero-title">{project}</h1>
+        <div className="project-meta-col">
+          <p className="project-statement">{projectMeta.intro}</p>
+          <div className="project-meta-bottom">
+            <span className="project-focus-text">{projectMeta.focus}</span>
+          </div>
+        </div>
+      </div>
+      <div className="project-header-rule" />
+    </header>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   CURATED CAPTION MAPPINGS & FALLBACK
+   Discreet, minimal captioning for pieces
+   ═══════════════════════════════════════════ */
+const CURATED_CAPTIONS: Record<string, string> = {
+  "sh-08": "TRAVEL CAMPAIGN / KEY VISUAL",
+  "sh-09": "HIGHWAY CORRIDOR / CAMPAIGN PANORAMA",
+  "sh-01": "FLEET IDENTITY / ON-ROAD",
+  "sh-02": "PASSENGER EXPERIENCE / SEAT DETAIL",
+  "sh-03": "TRAVEL CAMPAIGN STILL",
+  "sh-04": "PASSENGER MOMENT",
+  "sh-12": "REGIONAL AD / DELHI CAMPAIGN",
+  "sh-v1": "COMMERCIAL FILM / TRANSIT",
+  "sh-v2": "MOTION IDENT / TRANSIT",
+  "sh-v3": "ROUTE REEL / MOTION",
+  "sh-v4": "DEPARTURE MOMENTS / CINEMATIC",
+  "sh-v5": "NIGHT HIGHWAY / ROUTE VISUAL",
+  "tr-01": "EXHIBITION / SLEEP EXPO",
+  "tr-02": "AIR TECHNOLOGY / PRODUCT COMMUNICATION",
+  "tr-v1": "PAPER DIVISION / INDEPENDENCE DAY",
+  "tr-v2": "PAPER EXPO / CLOSER TO NATURE",
+  "tr-v3": "DUSSEHRA CAMPAIGN / FESTIVE MOTION",
+  "tr-v4": "RAKHI CAMPAIGN / BRAND FILM",
+  "tr-v5": "WORLD COTTON DAY / SUSTAINABILITY",
+  "tr-v6": "SPRING CAMPAIGN / BRAND MOTION",
+  "se-01": "PRODUCT CATALOGUE STILL",
+  "se-v1": "DROID M WATER HEATER / PRODUCT ANIMATION",
+  "se-v3": "PRIMAIR FAN / PRODUCT FILM",
+  "se-v10": "SMART WIFI PLUG / PRODUCT FEATURE",
+  "if-01": "HEAVY MACHINERY / FIELD CAROUSEL",
+  "if-02": "TRACTOR SERIES / EDITORIAL AD",
+  "if-03": "ARMY DAY SPECIAL / HEAVY COMMUNICATOR",
+  "if-04": "NAVRATRI DAY / FESTIVAL CREATIVE",
+  "if-v1": "POWER IN ACTION / MOTION FILM",
+  "if-v2": "HARVEST OPERATIONS / MOTION",
+  "if-v3": "EQUIPMENT PRECISION / ON-SITE",
+  "if-v4": "FESTIVAL AD / HOLI",
+  "if-v5": "REPUBLIC DAY CELEBRATION FILM",
+  "if-v6": "PENGUIN SERIES / PRODUCT REEL",
+  "ha-01": "ILLUMINATION CAMPAIGN",
+  "ha-03": "DIWALI FESTIVAL CAMPAIGN / PANORAMA",
+  "ha-04": "POP CULTURE / SPIDERMAN CAMPAIGN STILL",
+  "ha-v6": "DECORATIVE PENDANT LIGHTING / BRAND FILM",
+  "ha-v7": "HALONIX COMMERCIAL / BRAND FILM",
+  "ha-v9": "ONAM FESTIVAL AD / MOTION",
+  "ha-v10": "ROPELIGHT / COMMERCIAL",
+  "bu-01": "SCHOOL OF LAW & LEGAL STUDIES",
+  "bu-02": "WORLD ENVIRONMENTAL HEALTH DAY",
+  "bu-v1": "CAMPUS CHRISTMAS CELEBRATION FILM",
+  "bu-v2": "CAMPUS HOLI AD",
+  "bu-v3": "HGPI FESTIVAL REEL / MOTION",
+  "hv-01": "CONSUMER CAMPAIGN / HAPPINESS 5 LAKH CAROUSEL",
+  "hu-01": "DESTINATION ROUTE / HELLO HUBLI",
+  "hu-02": "REGIONAL AD / UDAIPUR ROUTE",
+  "hu-03": "TRAVEL FLEET CAMPAIGN / RAJKOT ROUTE",
+  "hu-04": "INTERACTIVE AD / FIFA THEMED CAMPAIGN",
+  "hu-05": "POP CULTURE POST / BANGALORE'S HERO",
+  "hu-06": "ROUTE NETWORK CAMPAIGN / AURANGABAD TO PUNE",
+  "hu-07": "NEW ROUTE CAMPAIGN / CHH. SAMBHAJINAGAR TO JODHPUR",
+  "hu-08": "पधारो म्हारे देश / JODHPUR WELCOME",
+  "ho-01": "POOLSIDE LEISURE / PROPERTY EDITORIAL",
+  "ho-02": "PROPERTY DETAIL PHOTOGRAPHY",
+  "ho-03": "WEEKEND STAYCATION CAMPAIGN",
+  "ho-v1": "LIFESTYLE REEL / AMBIENCE",
+  "ho-v3": "SUMMER CAMPAIGN REEL / MOTION",
+  "ho-v4": "CONCOURS PROPERTY REEL / LIFESTYLE",
+  "ho-08": "SEASONAL DELIGHTS / EDITORIAL",
+  "ho-v6": "PARK PLAZA / RESORT REEL",
+  "ho-09": "RAKHI CAMPAIGN / PARK PLAZA",
+};
+
+function getItemCaption(item: MediaItem): string {
+  if (CURATED_CAPTIONS[item.id]) return CURATED_CAPTIONS[item.id];
+  if (!item.source) return item.project.toUpperCase();
+  return item.source
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[-_]+/g, " ")
+    .toUpperCase();
+}
+
+/* ═══════════════════════════════════════════
+   ORIENTATION-DRIVEN PROJECT ARCHIVE LAYOUT
+   - Media orientation drives the layout dynamically
+   - ONLY genuine landscape media can be horizontal hero
+   - Portrait media NEVER used as horizontal hero
+   - If no landscape media, begins directly with media grid
+   - Clean horizontal grids (grid-2 & grid-3), pure CSS grid
+   - NO editorial side-copy blocks beside artwork
+   ═══════════════════════════════════════════ */
+function renderProjectContent(project: string, items: MediaItem[]) {
+  // 1. Classify media strictly by detected orientation
+  const landscapes = items.filter((m) => m.orientation === "landscape");
+  const portraits = items.filter((m) => m.orientation === "portrait");
+  const squares = items.filter((m) => m.orientation === "square");
+
+  // 2. Strict Hero Media Rule:
+  // ONLY genuine landscape media can be hero.
+  // Prefer genuine landscape video if available (e.g. Halonix 1920x1080), else landscape image.
+  const landscapeVideos = landscapes.filter((m) => m.type === "video");
+  const landscapeImages = landscapes.filter((m) => m.type === "image");
+
+  let heroItem: MediaItem | null = null;
+  let midLandscapes: MediaItem[] = [];
+
+  if (landscapeVideos.length > 0) {
+    heroItem = landscapeVideos[0];
+    midLandscapes = [...landscapeVideos.slice(1), ...landscapeImages];
+  } else if (landscapeImages.length > 0) {
+    heroItem = landscapeImages[0];
+    midLandscapes = landscapeImages.slice(1);
+  }
+
+  // 3. Balanced chunking helper for portrait / square grids
+  const chunkBalanced = (arr: MediaItem[]): MediaItem[][] => {
+    if (arr.length === 0) return [];
+    if (arr.length <= 3) return [arr];
+    if (arr.length === 4) return [arr.slice(0, 2), arr.slice(2, 4)];
+    if (arr.length === 5) return [arr.slice(0, 3), arr.slice(3, 5)];
+
+    const chunks: MediaItem[][] = [];
+    let i = 0;
+    while (i < arr.length) {
+      const remaining = arr.length - i;
+      if (remaining === 4) {
+        chunks.push(arr.slice(i, i + 2));
+        chunks.push(arr.slice(i + 2, i + 4));
+        break;
+      }
+      const take = remaining >= 3 ? 3 : remaining;
+      chunks.push(arr.slice(i, i + take));
+      i += take;
+    }
+    return chunks;
+  };
+
+  // Helper to render portrait grid chunks
+  const renderGridChunk = (
+    chunk: MediaItem[],
+    keyPrefix: string,
+    aspect: "portrait" | "square" = "portrait"
+  ) => {
+    if (chunk.length === 0) return null;
+    const gridCols =
+      chunk.length % 3 === 0 ? "grid-3" : chunk.length === 2 ? "grid-2" : "grid-3";
+    return (
+      <div key={keyPrefix} className={`flow-horizontal-grid ${gridCols}`}>
+        {chunk.map((m) => (
+          <MediaCard
+            key={m.id}
+            item={m}
+            variant="grid"
+            aspect={aspect}
+            caption={getItemCaption(m)}
+            projectItems={items}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  // Dedicated Hospitality editorial flow:
+  // Preserves existing video chunks and still chunks, ending with the curated 3-piece composition:
+  // LEFT: "A Collection Seasonal Delights" (ho-08)
+  // CENTER: New Video (ho-v6)
+  // RIGHT: Park Plaza Rakhi creative (ho-09)
+  if (project === "Hospitality") {
+    const trioIds = ["ho-08", "ho-v6", "ho-09"];
+    const trio = trioIds
+      .map((id) => items.find((m) => m.id === id))
+      .filter(Boolean) as MediaItem[];
+    const otherVideos = items.filter((m) => m.type === "video" && !trioIds.includes(m.id));
+    const otherStills = items.filter((m) => m.type === "image" && !trioIds.includes(m.id));
+
+    const videoChunks = chunkBalanced(otherVideos);
+    const stillChunks = chunkBalanced(otherStills);
+
+    return (
+      <>
+        {videoChunks.map((chunk, i) => renderGridChunk(chunk, `ho-vid-${i}`))}
+        {stillChunks.map((chunk, i) => renderGridChunk(chunk, `ho-still-${i}`))}
+        {trio.length === 3 && renderGridChunk(trio, "ho-editorial-trio")}
+      </>
+    );
+  }
+
+  // Separate portrait videos (reels) and portrait stills
+  const portraitVideos = portraits.filter((m) => m.type === "video");
+  const portraitStills = portraits.filter((m) => m.type === "image");
+
+  const videoChunks = chunkBalanced(portraitVideos);
+  const stillChunks = chunkBalanced(portraitStills);
+  const squareChunks = chunkBalanced(squares);
+
+  // Helper to render a landscape item in proper container
+  const renderLandscapeStage = (item: MediaItem, isHero: boolean, idx: number) => {
+    const isVideo = item.type === "video";
+    const caption = getItemCaption(item);
+    if (isVideo) {
+      return (
+        <div key={`stage-vid-${item.id}-${idx}`} className="flow-video-stage glow-warm">
+          <div className="stage-ambient-glow" />
+          <MediaCard
+            item={item}
+            variant={isHero ? "hero" : "feature"}
+            priority={isHero}
+            aspect="video"
+            caption={caption}
+            projectItems={items}
+          />
+        </div>
+      );
+    }
+    return (
+      <div key={`stage-img-${item.id}-${idx}`} className="flow-stage-hero">
+        <MediaCard
+          item={item}
+          variant={isHero ? "hero" : "feature"}
+          priority={isHero}
+          aspect="landscape"
+          caption={caption}
+          projectItems={items}
+        />
+      </div>
+    );
+  };
+
+  // Build the interleaved layout
+  const sections: React.ReactNode[] = [];
+
+  // Hero section ONLY if genuine landscape media exists
+  if (heroItem) {
+    sections.push(renderLandscapeStage(heroItem, true, 0));
+  }
+
+  // Interleave mid-landscapes with portrait chunks
+  let vidIdx = 0;
+  let stillIdx = 0;
+  let midIdx = 0;
+
+  const getNextPortraitChunk = (): { chunk: MediaItem[]; aspect: "portrait" } | null => {
+    if (vidIdx < videoChunks.length) {
+      const chunk = videoChunks[vidIdx];
+      vidIdx++;
+      return { chunk, aspect: "portrait" };
+    }
+    if (stillIdx < stillChunks.length) {
+      const chunk = stillChunks[stillIdx];
+      stillIdx++;
+      return { chunk, aspect: "portrait" };
+    }
+    return null;
+  };
+
+  while (
+    vidIdx < videoChunks.length ||
+    stillIdx < stillChunks.length ||
+    midIdx < midLandscapes.length
+  ) {
+    // 1. Place a portrait chunk
+    const p1 = getNextPortraitChunk();
+    if (p1) {
+      sections.push(renderGridChunk(p1.chunk, `portrait-${sections.length}`, p1.aspect));
+    }
+
+    // 2. Place a mid-landscape feature if available
+    if (midIdx < midLandscapes.length) {
+      sections.push(
+        renderLandscapeStage(midLandscapes[midIdx], false, midIdx + 1)
+      );
+      midIdx++;
+    }
+
+    // 3. Place another portrait chunk after the mid-landscape
+    const p2 = getNextPortraitChunk();
+    if (p2) {
+      sections.push(renderGridChunk(p2.chunk, `portrait-${sections.length}`, p2.aspect));
+    }
+  }
+
+  // Any square items placed cleanly
+  squareChunks.forEach((chunk, idx) => {
+    sections.push(renderGridChunk(chunk, `square-${idx}`, "square"));
+  });
+
+  return <>{sections}</>;
+}
+
+/* ═══════════════════════════════════════════
+   HERO INTRO SEQUENCE (HOME PAGE)
+   - Restrained, mature editorial hierarchy
+   ═══════════════════════════════════════════ */
+function Hero({
+  ready,
+  onExploreWork,
+}: {
+  ready: boolean;
+  onExploreWork: () => void;
+}) {
   const v = {
     hidden: { opacity: 0, y: 18 },
     show: (d: number) => ({
@@ -472,7 +1390,7 @@ function Hero({ ready }: { ready: boolean }) {
       >
         <span>ANUJ®</span>
         <span>CREATIVE SUPERVISOR / VISUAL DESIGNER</span>
-        <span>INDIA / 2026</span>
+        <span>INDIA</span>
       </motion.div>
 
       <div className="hero-center">
@@ -506,8 +1424,8 @@ function Hero({ ready }: { ready: boolean }) {
 
         <motion.button
           className="hero-cta"
-          data-cursor="EXPLORE"
-          onClick={() => scrollToId("work")}
+          data-cursor="WORK"
+          onClick={onExploreWork}
           variants={fade}
           initial="hidden"
           animate={animState}
@@ -517,998 +1435,301 @@ function Hero({ ready }: { ready: boolean }) {
         </motion.button>
       </div>
 
-      <motion.div
-        className="hero-foot"
-        variants={fade}
-        initial="hidden"
-        animate={animState}
-        custom={0.88}
-      >
-        <span>SCROLL TO MOVE THROUGH THE SYSTEM</span>
-        <span>SCROLL / 001</span>
-      </motion.div>
+      <div style={{ height: "24px" }} />
     </section>
   );
 }
 
 /* ═══════════════════════════════════════════
-   PHASE 2: WORK INDEX (EDITORIAL & DYNAMIC HOVER PREVIEW)
-   - Project number, name, category, pieces metadata
-   - Floating preview moves with cursor
-   - Row shifts 3px on hover, accent responds
+   HOME CURATED WORK SHOWCASE
+   A confident introductory exhibition (not an endless dump)
    ═══════════════════════════════════════════ */
-function WorkIndex({
-  projects,
-  active,
-  onPick,
+function HomeFeaturedWork({
+  onNavigate,
 }: {
-  projects: string[];
-  active: string;
-  onPick: (p: string) => void;
+  onNavigate: (path: string) => void;
 }) {
-  const [hovered, setHovered] = useState<string | null>(null);
-  const mouseX = useMotionValue(-500);
-  const mouseY = useMotionValue(-500);
-  const smoothX = useSpring(mouseX, { stiffness: 450, damping: 32 });
-  const smoothY = useSpring(mouseY, { stiffness: 450, damping: 32 });
-
-  const onMouseMove = (e: React.MouseEvent) => {
-    mouseX.set(e.clientX + 24);
-    mouseY.set(e.clientY - 90);
-  };
-
-  const hoveredItem = useMemo(() => {
-    if (!hovered) return null;
-    return media.find((m) => m.project === hovered) || null;
-  }, [hovered]);
+  const featured = ["Shyamoli", "Trident Group", "Halonix", "Humsafar"];
 
   return (
-    <section className="work-index" id="work" onMouseMove={onMouseMove}>
-      <div className="section-eyebrow">
-        <span>01 / SELECTED WORK</span>
-        <span>EDITORIAL ARCHIVE</span>
-      </div>
-
-      <div className="work-index-header">
-        <div className="work-title-group">
-          <span className="work-subtitle">SELECTED PROJECTS · 2024 — 2026</span>
-          <h2>
-            SELECTED
+    <section className="home-featured-work" id="featured">
+      <div className="home-featured-header">
+        <div>
+          <span className="notes-label" style={{ display: "block", marginBottom: "8px" }}>
+            EXHIBITION HIGHLIGHTS
+          </span>
+          <h2 className="home-featured-title">
+            FEATURED
             <br />
-            <em>WORK.</em>
+            <em>PROJECTS.</em>
           </h2>
         </div>
-        <p className="work-description">
-          An art-directed exhibition of selected brand campaigns, motion direction, industrial identity,
-          and destination storytelling.
-        </p>
+        <button
+          className="home-view-all-link"
+          onClick={() => onNavigate("/work")}
+          data-cursor="ARCHIVE"
+        >
+          VIEW ALL WORK <span>→</span>
+        </button>
       </div>
 
-      <div className="work-project-list" onMouseLeave={() => setHovered(null)}>
-        {projects.map((p, i) => {
-          const pItems = media.filter((m) => m.project === p);
+      <div className="home-featured-grid">
+        {featured.map((p) => {
           const pMeta = meta[p];
-          const hasVideos = pItems.some((m) => m.type === "video");
+          const firstImage = media.find((m) => m.project === p && m.src);
+          const firstVideo = media.find((m) => m.project === p && m.type === "video");
+          const displayMedia = firstImage || firstVideo;
 
           return (
             <button
               key={p}
-              className={`work-row ${hovered === p || active === p ? "is-active" : ""}`}
+              className="home-featured-card"
               style={{ "--accent": pMeta?.accent } as React.CSSProperties}
-              onMouseEnter={() => {
-                setHovered(p);
-                onPick(p);
-              }}
-              onFocus={() => {
-                setHovered(p);
-                onPick(p);
-              }}
-              onClick={() => scrollToId(`project-${slug(p)}`)}
-              data-cursor="ENTER"
+              onClick={() => onNavigate(`/work/${slug(p)}`)}
+              data-cursor="VIEW"
             >
-              <span className="work-row-no">{String(i + 1).padStart(2, "0")}</span>
-              <div className="work-row-main">
-                <b className="work-row-name">{p}</b>
-                <span className="work-row-tag">{pMeta?.tag}</span>
+              <div className="home-card-media">
+                {displayMedia?.type === "video" ? (
+                  <video
+                    src={displayMedia.videoSrc}
+                    poster={displayMedia.src || undefined}
+                    muted
+                    loop
+                    playsInline
+                    autoPlay
+                  />
+                ) : displayMedia ? (
+                  <img src={displayMedia.src} alt={p} loading="lazy" />
+                ) : null}
               </div>
-              <div className="work-row-meta">
-                <span>{pItems.length} PIECES</span>
-                <span>{hasVideos ? "MOTION + STILLS" : "STILLS"}</span>
+              <div className="home-card-meta">
+                <h3 className="home-card-name">{p}</h3>
+                <span className="home-card-tag">{pMeta?.tag}</span>
               </div>
-              <span className="work-row-arrow">↗</span>
             </button>
           );
         })}
       </div>
-
-      {/* Floating Hover Preview Card */}
-      <AnimatePresence>
-        {hovered && hoveredItem && (
-          <motion.div
-            className="work-floating-preview"
-            style={{ x: smoothX, y: smoothY }}
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.94 }}
-            transition={{ duration: 0.2 }}
-          >
-            {hoveredItem.type === "video" ? (
-              <video
-                src={hoveredItem.videoSrc}
-                poster={hoveredItem.src || undefined}
-                muted
-                autoPlay
-                loop
-                playsInline
-              />
-            ) : (
-              <img src={hoveredItem.src} alt={`${hovered} preview`} />
-            )}
-            <div className="floating-preview-bar">
-              <span>{hovered.toUpperCase()}</span>
-              <span>PREVIEW</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </section>
   );
 }
 
 /* ═══════════════════════════════════════════
-   PHASE 2: High-Performance Media Card
-   - Viewport IntersectionObserver pauses offscreen video
-   - Cinematic clip-path reveal & scale settle
-   - Muted autoplay / playsInline
+   WORK ARCHIVE PAGE (/work)
+   - Visual-led digital exhibition
+   - 9 approved projects in exact sequence
+   - Native artwork proportions, zero fake metadata
    ═══════════════════════════════════════════ */
-function MediaCard({
-  item,
-  variant = "feature",
-  aspect = "landscape",
-  priority = false,
-  caption,
+function WorkArchivePage({
+  onNavigate,
 }: {
-  key?: React.Key;
-  item: MediaItem;
-  variant?: "hero" | "feature" | "split" | "portrait" | "grid";
-  aspect?: "landscape" | "portrait" | "square" | "video";
-  priority?: boolean;
-  caption?: string;
+  projects?: string[];
+  onNavigate: (path: string) => void;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [inView, setInView] = useState(false);
-  const [playing, setPlaying] = useState(false);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setInView(entry.isIntersecting);
-        if (item.type === "video" && videoRef.current) {
-          if (entry.isIntersecting) {
-            videoRef.current.play().catch(() => {});
-            setPlaying(true);
-          } else {
-            videoRef.current.pause();
-            setPlaying(false);
-          }
-        }
-      },
-      { threshold: 0.15, rootMargin: "60px 0px" }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [item.type]);
-
   return (
-    <div
-      ref={containerRef}
-      className={`media-card media-${variant} media-aspect-${aspect} ${
-        inView ? "media-in-view" : ""
-      }`}
-      data-cursor={item.type === "video" ? (playing ? "PLAYING" : "PLAY") : "VIEW"}
-    >
-      <div className="media-frame">
-        {item.type === "video" ? (
-          <video
-            ref={videoRef}
-            src={item.videoSrc}
-            poster={item.src || undefined}
-            muted
-            loop
-            playsInline
-            preload={priority ? "auto" : "metadata"}
-            onPlay={() => setPlaying(true)}
-            onPause={() => setPlaying(false)}
-          />
-        ) : (
-          <img
-            src={item.src}
-            alt={`${item.project} creative`}
-            loading={priority ? "eager" : "lazy"}
-            decoding="async"
-          />
-        )}
-        <div className="media-light-sweep" />
-      </div>
+    <div className="page-container work-page">
+      <header className="page-header work-page-header">
+        <h1 className="page-title work-title">WORK</h1>
+      </header>
 
-      <div className="media-meta">
-        <div className="media-meta-left">
-          <span className="media-id">{String(item.id).toUpperCase()}</span>
-          {caption && <span className="media-caption">{caption}</span>}
-        </div>
-        <span className="media-type-badge">
-          {item.type === "video"
-            ? playing
-              ? "▶ MOTION / LIVE"
-              : "▶ MOTION"
-            : "STATIC / CREATIVE"}
-        </span>
+      <div className="work-gallery-grid">
+        {VISIBLE_PROJECT_SEQUENCE.map((projectName) => {
+          const repId = REPRESENTATIVE_MEDIA[projectName];
+          const repItem = media.find((m) => m.id === repId);
+          const pMeta = meta[projectName];
+          const isLandscape = repItem?.orientation === "landscape";
+
+          return (
+            <article
+              key={projectName}
+              className={`work-gallery-card ${isLandscape ? "is-landscape-span" : "is-portrait-card"}`}
+              style={{ "--accent": pMeta?.accent } as React.CSSProperties}
+              onClick={() => onNavigate(`/work/${slug(projectName)}`)}
+              data-cursor="ENTER"
+            >
+              <div className="work-gallery-media">
+                {repItem?.type === "video" ? (
+                  <video
+                    src={repItem.videoSrc}
+                    poster={repItem.src || undefined}
+                    muted
+                    loop
+                    playsInline
+                    autoPlay
+                  />
+                ) : repItem ? (
+                  <img
+                    src={repItem.src}
+                    alt={projectName}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : null}
+                <div className="work-gallery-sweep" />
+              </div>
+
+              <div className="work-gallery-meta">
+                <h2 className="work-gallery-title">{projectName}</h2>
+                <span className="work-gallery-cta">VIEW PROJECT ↗</span>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════
-   PHASE 2.1: Single Project Entry Moment
-   - Compact transition marker (02 / 09 · Category · Index jump)
-   - Large project title & compact editorial statement side-by-side
-   - Reduced vertical spacing: artwork arrives quickly
+   PROJECT DETAIL PAGE (/work/[project])
+   - Short, work-first structure
+   - Work begins immediately after concise intro
+   - Subtle Next Project transition looping through sequence
    ═══════════════════════════════════════════ */
-function ProjectIntro({
+function ProjectDetailPage({
   project,
-  index,
-  totalCount,
-  projectMeta,
-  itemsCount,
+  onNavigate,
 }: {
   project: string;
-  index: number;
-  totalCount: number;
-  projectMeta: (typeof meta)[string];
-  itemsCount: number;
-}) {
-  return (
-    <header className="project-intro">
-      <div className="project-marker">
-        <div className="marker-meta">
-          <span className="marker-num">0{index + 1} / 0{totalCount}</span>
-          <span className="marker-sep">/</span>
-          <span className="marker-tag">{projectMeta.tag}</span>
-        </div>
-        <button
-          className="marker-index-btn"
-          onClick={() => scrollToId("work")}
-          data-cursor="INDEX"
-        >
-          INDEX ↑
-        </button>
-      </div>
-
-      <div className="project-title-grid">
-        <h2 className="project-hero-title">{project}</h2>
-        <div className="project-meta-col">
-          <p className="project-statement">{projectMeta.intro}</p>
-          <div className="project-meta-bottom">
-            <span className="project-focus-text">{projectMeta.focus}</span>
-            <span className="project-count-pill">
-              {itemsCount} PIECES · {projectMeta.year}
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="project-header-rule" />
-    </header>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   PHASE 2: Project-Specific Art-Directed Content Flow
-   Custom composition and pacing for each project:
-   - Shyamoli: Route movement & travel horizontal flow
-   - Trident: Tactile editorial structure & paper films
-   - Standard Electricals: Technical precision & motion stages
-   - Indo Farm: Grounded heavy horizontal scale & machinery
-   - Halonix: Illumination light/dark contrast & glow stages
-   - Bahra University: Campus culture & festive motion
-   - Havells: Polished consumer campaign showcase
-   - Humsafar: Destination narratives & cultural routes
-   - Hospitality: Resort atmosphere & poolside photography
-   ═══════════════════════════════════════════ */
-function renderProjectContent(project: string, items: MediaItem[]) {
-  const byId = (id: string) => items.find((m) => m.id === id);
-
-  switch (project) {
-    case "Shyamoli": {
-      const hero = byId("sh-01") || items[0];
-      const vidHero = byId("sh-v1");
-      const splitA1 = byId("sh-12");
-      const splitA2 = byId("sh-02");
-      const portrait = byId("sh-03");
-      const vidMid = byId("sh-v2");
-      const splitB1 = byId("sh-04");
-      const splitB2 = byId("sh-v3");
-      const usedIds = new Set([
-        hero?.id,
-        vidHero?.id,
-        splitA1?.id,
-        splitA2?.id,
-        portrait?.id,
-        vidMid?.id,
-        splitB1?.id,
-        splitB2?.id,
-      ]);
-      const rest = items.filter((m) => !usedIds.has(m.id));
-
-      return (
-        <>
-          {/* Hero Landscape */}
-          {hero && (
-            <div className="flow-stage-hero">
-              <MediaCard item={hero} variant="hero" priority aspect="landscape" caption="TRAVEL CAMPAIGN / KEY VISUAL" />
-            </div>
-          )}
-
-          {/* Cinematic Motion Stage */}
-          {vidHero && (
-            <div className="flow-video-stage">
-              <div className="stage-ambient-glow" />
-              <MediaCard item={vidHero} variant="feature" aspect="video" caption="COMMERCIAL FILM / TRANSIT" />
-            </div>
-          )}
-
-          {/* Asymmetric Split Spread */}
-          {splitA1 && splitA2 && (
-            <div className="flow-split-row">
-              <div className="split-col-wide">
-                <MediaCard item={splitA1} variant="split" aspect="landscape" caption="REGIONAL AD / DELHI CAMPAIGN" />
-              </div>
-              <div className="split-col-narrow">
-                <MediaCard item={splitA2} variant="split" aspect="square" caption="FLEET STILL" />
-              </div>
-            </div>
-          )}
-
-          {/* Offset Portrait with Travel Route Editorial Note */}
-          {portrait && (
-            <div className="flow-portrait-offset">
-              <div className="portrait-offset-card">
-                <MediaCard item={portrait} variant="portrait" aspect="portrait" caption="TRAVEL CAMPAIGN STILL" />
-              </div>
-              <div className="portrait-editorial-notes">
-                <span className="notes-label">ROUTE IDENTITY</span>
-                <h4>JOURNEYS CRAFTED AROUND THE RIDER.</h4>
-                <p>
-                  Visual pacing designed to reflect highway movement, long-distance comfort, and the
-                  anticipation of arrival.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Second Motion Feature */}
-          {vidMid && (
-            <div className="flow-video-stage">
-              <MediaCard item={vidMid} variant="feature" aspect="video" caption="MOTION IDENT / TRANSIT" />
-            </div>
-          )}
-
-          {/* Asymmetric Split 2 */}
-          {splitB1 && splitB2 && (
-            <div className="flow-split-row">
-              <div className="split-col-narrow">
-                <MediaCard item={splitB1} variant="split" aspect="square" caption="PASSENGER MOMENT" />
-              </div>
-              <div className="split-col-wide">
-                <MediaCard item={splitB2} variant="split" aspect="video" caption="ROUTE REEL / MOTION" />
-              </div>
-            </div>
-          )}
-
-          {/* Supporting Work Staggered Grid */}
-          {rest.length > 0 && (
-            <div className="flow-editorial-grid grid-3">
-              {rest.map((m) => (
-                <MediaCard key={m.id} item={m} variant="grid" aspect={m.type === "video" ? "video" : "landscape"} />
-              ))}
-            </div>
-          )}
-        </>
-      );
-    }
-
-    case "Trident Group": {
-      const vidHero = byId("tr-v1") || items.find((m) => m.type === "video");
-      const split1 = byId("tr-01");
-      const split2 = byId("tr-v2");
-      const feature = byId("tr-02");
-      const usedIds = new Set([vidHero?.id, split1?.id, split2?.id, feature?.id]);
-      const rest = items.filter((m) => !usedIds.has(m.id));
-
-      return (
-        <>
-          {/* Motion Stage Hero */}
-          {vidHero && (
-            <div className="flow-video-stage">
-              <div className="stage-ambient-glow" />
-              <MediaCard item={vidHero} variant="hero" priority aspect="video" caption="PAPER DIVISION / INDEPENDENCE DAY" />
-            </div>
-          )}
-
-          {/* Tactile Split: Sleep Expo + Air Technology beside Nature Expo Tall Reel */}
-          {split1 && split2 && (
-            <div className="flow-split-row">
-              <div className="split-col-wide">
-                <MediaCard item={split1} variant="split" aspect="landscape" caption="EXHIBITION / SLEEP EXPO" />
-                {feature && (
-                  <MediaCard item={feature} variant="split" aspect="landscape" caption="AIR TECHNOLOGY / PRODUCT COMMUNICATION" />
-                )}
-              </div>
-              <div className="split-col-narrow">
-                <MediaCard item={split2} variant="split" aspect="video" caption="PAPER EXPO / NATURE REEL" />
-              </div>
-            </div>
-          )}
-
-          {/* Supporting Motion Grid */}
-          {rest.length > 0 && (
-            <div className="flow-editorial-grid grid-2">
-              {rest.map((m) => (
-                <MediaCard key={m.id} item={m} variant="grid" aspect="video" />
-              ))}
-            </div>
-          )}
-        </>
-      );
-    }
-
-    case "Standard Electricals": {
-      const heroVid = byId("se-v1") || items[0];
-      const still = byId("se-01");
-      const fanVid = byId("se-v3");
-      const wifiVid = byId("se-v10");
-      const usedIds = new Set([heroVid?.id, still?.id, fanVid?.id, wifiVid?.id]);
-      const rest = items.filter((m) => !usedIds.has(m.id));
-
-      return (
-        <>
-          {/* Hero Technical Product Motion */}
-          {heroVid && (
-            <div className="flow-video-stage">
-              <div className="stage-ambient-glow" />
-              <MediaCard item={heroVid} variant="hero" priority aspect="video" caption="DROID M WATER HEATER / PRODUCT ANIMATION" />
-            </div>
-          )}
-
-          {/* Split: Still + Primair Fan */}
-          {still && fanVid && (
-            <div className="flow-split-row">
-              <div className="split-col-narrow">
-                <MediaCard item={still} variant="split" aspect="square" caption="PRODUCT CATALOGUE STILL" />
-              </div>
-              <div className="split-col-wide">
-                <MediaCard item={fanVid} variant="split" aspect="video" caption="PRIMAIR FAN / PRODUCT FILM" />
-              </div>
-            </div>
-          )}
-
-          {/* Smart Wifi Plug Motion Feature */}
-          {wifiVid && (
-            <div className="flow-stage-hero">
-              <MediaCard item={wifiVid} variant="feature" aspect="video" caption="SMART WIFI PLUG / PRODUCT FEATURE" />
-            </div>
-          )}
-
-          {/* Technical Motion Grid */}
-          {rest.length > 0 && (
-            <div className="flow-editorial-grid grid-3">
-              {rest.map((m) => (
-                <MediaCard key={m.id} item={m} variant="grid" aspect="video" />
-              ))}
-            </div>
-          )}
-        </>
-      );
-    }
-
-    case "Indo Farm": {
-      const hero = byId("if-01") || items[0];
-      const vidHero = byId("if-v1");
-      const split1 = byId("if-02");
-      const split2 = byId("if-v4");
-      const portrait = byId("if-03");
-      const vidMid = byId("if-v5");
-      const usedIds = new Set([hero?.id, vidHero?.id, split1?.id, split2?.id, portrait?.id, vidMid?.id]);
-      const rest = items.filter((m) => !usedIds.has(m.id));
-
-      return (
-        <>
-          {/* Grounded Machinery Hero Feature */}
-          {hero && (
-            <div className="flow-stage-hero">
-              <MediaCard item={hero} variant="hero" priority aspect="landscape" caption="HEAVY MACHINERY / FIELD CAROUSEL" />
-            </div>
-          )}
-
-          {/* Motion Stage */}
-          {vidHero && (
-            <div className="flow-video-stage">
-              <div className="stage-ambient-glow" />
-              <MediaCard item={vidHero} variant="feature" aspect="video" caption="POWER IN ACTION / MOTION FILM" />
-            </div>
-          )}
-
-          {/* Asymmetric Split: Field Still + Holi Film */}
-          {split1 && split2 && (
-            <div className="flow-split-row">
-              <div className="split-col-wide">
-                <MediaCard item={split1} variant="split" aspect="landscape" caption="TRACTOR SERIES / EDITORIAL AD" />
-              </div>
-              <div className="split-col-narrow">
-                <MediaCard item={split2} variant="split" aspect="video" caption="FESTIVAL AD / HOLI" />
-              </div>
-            </div>
-          )}
-
-          {/* Offset Portrait: Army Day */}
-          {portrait && (
-            <div className="flow-portrait-offset">
-              <div className="portrait-offset-card">
-                <MediaCard item={portrait} variant="portrait" aspect="portrait" caption="ARMY DAY CAMPAIGN" />
-              </div>
-              <div className="portrait-editorial-notes">
-                <span className="notes-label">POWER & INTEGRITY</span>
-                <h4>BUILT FOR WORK THAT DOES NOT STOP.</h4>
-                <p>
-                  Industrial communication created with weight, authentic landscape scale, and no
-                  decorative fluff.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Republic Day Motion Feature */}
-          {vidMid && (
-            <div className="flow-video-stage">
-              <MediaCard item={vidMid} variant="feature" aspect="video" caption="REPUBLIC DAY CELEBRATION FILM" />
-            </div>
-          )}
-
-          {/* Supporting Machinery Grid */}
-          {rest.length > 0 && (
-            <div className="flow-editorial-grid grid-2">
-              {rest.map((m) => (
-                <MediaCard key={m.id} item={m} variant="grid" aspect={m.type === "video" ? "video" : "landscape"} />
-              ))}
-            </div>
-          )}
-        </>
-      );
-    }
-
-    case "Halonix": {
-      const vidHero = byId("ha-v6") || items.find((m) => m.type === "video");
-      const split1 = byId("ha-01");
-      const split2 = byId("ha-v10");
-      const feature = byId("ha-04");
-      const vidMid = byId("ha-v9");
-      const usedIds = new Set([vidHero?.id, split1?.id, split2?.id, feature?.id, vidMid?.id]);
-      const rest = items.filter((m) => !usedIds.has(m.id));
-
-      return (
-        <>
-          {/* Pendant Lighting Cinema Stage with Warm Glow */}
-          {vidHero && (
-            <div className="flow-video-stage glow-warm">
-              <div className="stage-ambient-glow" />
-              <MediaCard item={vidHero} variant="hero" priority aspect="video" caption="DECORATIVE PENDANT LIGHTING / BRAND FILM" />
-            </div>
-          )}
-
-          {/* Split: Still + Ropelight Motion */}
-          {split1 && split2 && (
-            <div className="flow-split-row">
-              <div className="split-col-narrow">
-                <MediaCard item={split1} variant="split" aspect="square" caption="ILLUMINATION CAMPAIGN" />
-              </div>
-              <div className="split-col-wide">
-                <MediaCard item={split2} variant="split" aspect="video" caption="ROPELIGHT / COMMERCIAL" />
-              </div>
-            </div>
-          )}
-
-          {/* Spiderman Campaign Feature */}
-          {feature && (
-            <div className="flow-stage-hero">
-              <MediaCard item={feature} variant="feature" aspect="landscape" caption="POP CULTURE / SPIDERMAN CAMPAIGN STILL" />
-            </div>
-          )}
-
-          {/* Onam Motion Ad */}
-          {vidMid && (
-            <div className="flow-video-stage">
-              <MediaCard item={vidMid} variant="feature" aspect="video" caption="ONAM FESTIVAL AD / MOTION" />
-            </div>
-          )}
-
-          {/* Lighting Grid */}
-          {rest.length > 0 && (
-            <div className="flow-editorial-grid grid-3">
-              {rest.map((m) => (
-                <MediaCard key={m.id} item={m} variant="grid" aspect={m.type === "video" ? "video" : "square"} />
-              ))}
-            </div>
-          )}
-        </>
-      );
-    }
-
-    case "Bahra University": {
-      const hero = byId("bu-01") || items[0];
-      const vidHero = byId("bu-v1");
-      const split1 = byId("bu-02");
-      const split2 = byId("bu-v2");
-      const vid3 = byId("bu-v3");
-
-      return (
-        <>
-          {/* Legal Studies Hero Feature */}
-          {hero && (
-            <div className="flow-stage-hero">
-              <MediaCard item={hero} variant="hero" priority aspect="landscape" caption="SCHOOL OF LAW & LEGAL STUDIES" />
-            </div>
-          )}
-
-          {/* Christmas Motion Film */}
-          {vidHero && (
-            <div className="flow-video-stage">
-              <div className="stage-ambient-glow" />
-              <MediaCard item={vidHero} variant="feature" aspect="video" caption="CAMPUS CHRISTMAS CELEBRATION FILM" />
-            </div>
-          )}
-
-          {/* Split: Environmental Health + Holi Ad */}
-          {split1 && split2 && (
-            <div className="flow-split-row">
-              <div className="split-col-wide">
-                <MediaCard item={split1} variant="split" aspect="landscape" caption="WORLD ENVIRONMENTAL HEALTH DAY" />
-              </div>
-              <div className="split-col-narrow">
-                <MediaCard item={split2} variant="split" aspect="video" caption="CAMPUS HOLI AD" />
-              </div>
-            </div>
-          )}
-
-          {/* HGPI Christmas Motion Feature */}
-          {vid3 && (
-            <div className="flow-video-stage">
-              <MediaCard item={vid3} variant="feature" aspect="video" caption="HGPI FESTIVAL REEL / MOTION" />
-            </div>
-          )}
-        </>
-      );
-    }
-
-    case "Havells": {
-      const hero = byId("hv-01") || items[0];
-      return (
-        <div className="flow-havells-centerpiece">
-          {hero && (
-            <div className="flow-stage-hero">
-              <MediaCard item={hero} variant="hero" priority aspect="landscape" caption="CONSUMER CAMPAIGN / HAPPINESS 5 LAKH CAROUSEL" />
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    case "Humsafar": {
-      const hero = byId("hu-06") || items[0];
-      const portrait = byId("hu-08");
-      const midHero = byId("hu-07");
-      const fleetPair = [byId("hu-03"), byId("hu-01")].filter(Boolean) as MediaItem[];
-      const campaignTrio = [byId("hu-02"), byId("hu-04"), byId("hu-05")].filter(Boolean) as MediaItem[];
-      const stagedIds = new Set([
-        hero?.id,
-        portrait?.id,
-        midHero?.id,
-        ...fleetPair.map((m) => m.id),
-        ...campaignTrio.map((m) => m.id),
-      ]);
-      const rest = items.filter((m) => !stagedIds.has(m.id));
-
-      return (
-        <>
-          {/* Panoramic Route Network Hero */}
-          {hero && (
-            <div className="flow-stage-hero">
-              <MediaCard
-                item={hero}
-                variant="hero"
-                priority
-                aspect="landscape"
-                caption="ROUTE NETWORK CAMPAIGN / AURANGABAD TO PUNE"
-              />
-            </div>
-          )}
-
-          {/* Offset Portrait with Regional Identity Editorial Framing */}
-          {portrait && (
-            <div className="flow-portrait-offset">
-              <div className="portrait-offset-card">
-                <MediaCard
-                  item={portrait}
-                  variant="portrait"
-                  aspect="portrait"
-                  caption="पधारो म्हारे देश / JODHPUR WELCOME"
-                />
-              </div>
-              <div className="portrait-editorial-notes">
-                <span className="notes-label">REGIONAL IDENTITY</span>
-                <h4>CONNECTING ROUTES WITH REGIONAL SOUL.</h4>
-                <p>
-                  Rooted in Indian cities, drop points, and cultural landmarks, combining regional
-                  typography with modern transit design.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Inter-State Highway Corridor Panorama */}
-          {midHero && (
-            <div className="flow-stage-hero">
-              <MediaCard
-                item={midHero}
-                variant="feature"
-                aspect="landscape"
-                caption="NEW ROUTE CAMPAIGN / CHH. SAMBHAJINAGAR TO JODHPUR"
-              />
-            </div>
-          )}
-
-          {/* Travel Fleet & Destination Pair (Equal 3:4 Proportions) */}
-          {fleetPair.length > 0 && (
-            <div className="flow-horizontal-grid grid-2">
-              {fleetPair.map((m) => (
-                <MediaCard
-                  key={m.id}
-                  item={m}
-                  variant="grid"
-                  aspect="portrait"
-                  caption={
-                    m.id === "hu-03"
-                      ? "TRAVEL FLEET CAMPAIGN / RAJKOT ROUTE"
-                      : "DESTINATION ROUTE / HELLO HUBLI"
-                  }
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Destination & Pop Culture Campaign Trio (Equal 3:4 Proportions) */}
-          {campaignTrio.length > 0 && (
-            <div className="flow-horizontal-grid grid-3">
-              {campaignTrio.map((m) => (
-                <MediaCard
-                  key={m.id}
-                  item={m}
-                  variant="grid"
-                  aspect="portrait"
-                  caption={
-                    m.id === "hu-02"
-                      ? "REGIONAL AD / UDAIPUR ROUTE"
-                      : m.id === "hu-04"
-                      ? "INTERACTIVE AD / FIFA THEMED CAMPAIGN"
-                      : "POP CULTURE POST / BANGALORE'S HERO"
-                  }
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Any remaining items */}
-          {rest.length > 0 && (
-            <div className="flow-horizontal-grid grid-3">
-              {rest.map((m) => (
-                <MediaCard key={m.id} item={m} variant="grid" aspect="portrait" />
-              ))}
-            </div>
-          )}
-        </>
-      );
-    }
-
-    case "Hospitality": {
-      const poolHero = byId("ho-01") || items[0];
-      const vidHero = byId("ho-v4");
-      const split1 = byId("ho-03");
-      const split2 = byId("ho-v1");
-      const portrait = byId("ho-02");
-      const vidMid = byId("ho-v3");
-      const usedIds = new Set([poolHero?.id, vidHero?.id, split1?.id, split2?.id, portrait?.id, vidMid?.id]);
-      const rest = items.filter((m) => !usedIds.has(m.id));
-
-      return (
-        <>
-          {/* Signature Poolside Hero */}
-          {poolHero && (
-            <div className="flow-stage-hero">
-              <MediaCard item={poolHero} variant="hero" priority aspect="landscape" caption="POOLSIDE LEISURE / PROPERTY EDITORIAL" />
-            </div>
-          )}
-
-          {/* Concours Reel Motion Stage */}
-          {vidHero && (
-            <div className="flow-video-stage">
-              <div className="stage-ambient-glow" />
-              <MediaCard item={vidHero} variant="feature" aspect="video" caption="CONCOURS PROPERTY REEL / LIFESTYLE" />
-            </div>
-          )}
-
-          {/* Split: Staycation Still + Video 1 */}
-          {split1 && split2 && (
-            <div className="flow-split-row">
-              <div className="split-col-wide">
-                <MediaCard item={split1} variant="split" aspect="landscape" caption="WEEKEND STAYCATION CAMPAIGN" />
-              </div>
-              <div className="split-col-narrow">
-                <MediaCard item={split2} variant="split" aspect="video" caption="LIFESTYLE REEL / AMBIENCE" />
-              </div>
-            </div>
-          )}
-
-          {/* Offset Portrait: 9th July Still */}
-          {portrait && (
-            <div className="flow-portrait-offset">
-              <div className="portrait-offset-card">
-                <MediaCard item={portrait} variant="portrait" aspect="portrait" caption="PROPERTY DETAIL PHOTOGRAPHY" />
-              </div>
-              <div className="portrait-editorial-notes">
-                <span className="notes-label">RESORT ATMOSPHERE</span>
-                <h4>SPACES DESIGNED TO BE INHABITED SLOWLY.</h4>
-                <p>
-                  Visual direction prioritizing warmth, natural daylight, texture, and relaxed luxury.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Motion Feature */}
-          {vidMid && (
-            <div className="flow-video-stage">
-              <MediaCard item={vidMid} variant="feature" aspect="video" caption="SUMMER CAMPAIGN REEL / MOTION" />
-            </div>
-          )}
-
-          {/* Remaining Hospitality Stills & Films Grid */}
-          {rest.length > 0 && (
-            <div className="flow-editorial-grid grid-3">
-              {rest.map((m) => (
-                <MediaCard key={m.id} item={m} variant="grid" aspect={m.type === "video" ? "video" : "landscape"} />
-              ))}
-            </div>
-          )}
-        </>
-      );
-    }
-
-    default:
-      return (
-        <div className="flow-editorial-grid grid-2">
-          {items.map((m) => (
-            <MediaCard key={m.id} item={m} variant="grid" />
-          ))}
-        </div>
-      );
-  }
-}
-
-/* ═══════════════════════════════════════════
-   PHASE 2.1: Project Exhibition Chapter Component
-   - Seamless flow directly into creative work
-   - No redundant NEXT CHAPTER cards
-   - Art-directed chapter transition styling
-   ═══════════════════════════════════════════ */
-function ProjectSection({
-  project,
-  index,
-  totalCount,
-  isLast,
-}: {
-  key?: React.Key;
-  project: string;
-  index: number;
-  totalCount: number;
-  isLast: boolean;
+  projects?: string[];
+  onNavigate: (path: string) => void;
 }) {
   const items = useMemo(() => media.filter((x) => x.project === project), [project]);
   const pMeta = meta[project];
-  if (!items.length || !pMeta) return null;
+
+  const currentIdx = VISIBLE_PROJECT_SEQUENCE.indexOf(project);
+  const nextProject =
+    currentIdx >= 0
+      ? VISIBLE_PROJECT_SEQUENCE[(currentIdx + 1) % VISIBLE_PROJECT_SEQUENCE.length]
+      : VISIBLE_PROJECT_SEQUENCE[0];
+
+  if (!items.length || !pMeta) {
+    return (
+      <div className="page-container" style={{ textAlign: "center", paddingTop: "140px" }}>
+        <h2>PROJECT NOT FOUND</h2>
+        <button
+          onClick={() => onNavigate("/work")}
+          style={{ marginTop: "20px", color: "#aaa" }}
+        >
+          ← RETURN TO WORK
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <section
-      id={`project-${slug(project)}`}
-      className={`project-chapter project-${slug(project)} trans-${slug(project)}`}
+    <article
+      className={`project-detail-page project-${slug(project)} trans-${slug(project)}`}
       style={{ "--accent": pMeta.accent } as React.CSSProperties}
     >
       <ProjectIntro
         project={project}
-        index={index}
-        totalCount={totalCount}
         projectMeta={pMeta}
-        itemsCount={items.length}
+        onBackToWork={() => onNavigate("/work")}
       />
 
       <div className="project-exhibition-flow">{renderProjectContent(project, items)}</div>
 
-      {isLast ? (
-        <div className="exhibition-end-bridge">
-          <div className="bridge-rule" />
-          <div className="bridge-content">
-            <span className="bridge-meta">END OF SELECTED WORK // 0{totalCount} PROJECTS</span>
-            <button
-              className="bridge-link"
-              onClick={() => scrollToId("process")}
-              data-cursor="EXPLORE"
-            >
-              CONTINUE TO IDEA LAB ↓
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="chapter-end-line" />
-      )}
-    </section>
+      <div className="next-project-divider" />
+      <section className="next-project-transition">
+        <button
+          className="next-project-link"
+          onClick={() => onNavigate(`/work/${slug(nextProject)}`)}
+          data-cursor="NEXT"
+        >
+          <span className="next-project-eyebrow">UP NEXT</span>
+          <h2 className="next-project-name">{nextProject}</h2>
+          <span className="next-project-action">VIEW PROJECT →</span>
+        </button>
+      </section>
+    </article>
   );
 }
 
 /* ═══════════════════════════════════════════
-   Process: Idea Lab (Clearly labeled reconstructed studies)
+   CUSTOM 404 PAGE
+   - Minimal, dark, editorial
    ═══════════════════════════════════════════ */
-function Process() {
+function NotFoundPage({ onNavigate }: { onNavigate: (path: string) => void }) {
+  return (
+    <div className="page-container not-found-page">
+      <header className="page-header not-found-header">
+        <span className="not-found-eyebrow">404</span>
+        <h1 className="page-title not-found-title">
+          THIS PAGE
+          <br />
+          <em>WANDERED OFF.</em>
+        </h1>
+        <div className="not-found-cta">
+          <button
+            className="not-found-btn"
+            onClick={() => onNavigate("/work")}
+            data-cursor="WORK"
+          >
+            Back to work <span>→</span>
+          </button>
+        </div>
+      </header>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   PROCESS PAGE (/process)
+   ═══════════════════════════════════════════ */
+function ProcessPage() {
   const studies = [
     {
       brand: "Trident Group",
       title: "TACTILE PACKAGING & TEXTILE IDENTITY",
       step: "01",
-      steps: ["THE IDEA: Tactile sustainability", "VISUAL EXPLORATION: Earth tones & raw pulp", "DESIGN SYSTEM: Heavy grid & minimal typography", "MOTION: Fluid unravelling lines"],
+      steps: [
+        "THE IDEA: Tactile sustainability",
+        "VISUAL EXPLORATION: Earth tones & raw pulp",
+        "DESIGN SYSTEM: Heavy grid & minimal typography",
+        "MOTION: Fluid unravelling lines",
+      ],
     },
     {
       brand: "Halonix",
       title: "HIGH-CONTRAST ILLUMINATION CAMPAIGNS",
       step: "02",
-      steps: ["THE IDEA: Light as drama", "VISUAL EXPLORATION: Deep black vs bright amber", "DESIGN SYSTEM: Radiant highlights", "MOTION: Pulsing light transitions"],
+      steps: [
+        "THE IDEA: Light as drama",
+        "VISUAL EXPLORATION: Deep black vs bright amber",
+        "DESIGN SYSTEM: Radiant highlights",
+        "MOTION: Pulsing light transitions",
+      ],
     },
     {
       brand: "Standard Electricals",
       title: "PRECISION MOTION FOR CONSUMER APPLIANCES",
       step: "03",
-      steps: ["THE IDEA: Geometry meets function", "VISUAL EXPLORATION: Technical wireframes", "DESIGN SYSTEM: Clean Swiss rules", "MOTION: Linear mechanical camera tracking"],
+      steps: [
+        "THE IDEA: Geometry meets function",
+        "VISUAL EXPLORATION: Technical wireframes",
+        "DESIGN SYSTEM: Clean Swiss rules",
+        "MOTION: Linear mechanical camera tracking",
+      ],
     },
   ];
 
   return (
-    <section className="process" id="process">
-      <div className="section-eyebrow">
-        <span>02 / IDEA LAB</span>
-        <span>RECONSTRUCTED VISUAL STUDIES</span>
-      </div>
-
-      <div className="process-intro">
-        <h2>
+    <div className="page-container">
+      <header className="page-header">
+        <span className="notes-label" style={{ display: "block", marginBottom: "12px" }}>
+          IDEA LAB
+        </span>
+        <h1 className="page-title">
           FROM THOUGHT
           <br />
           <em>TO FRAME.</em>
-        </h2>
-        <p>
+        </h1>
+        <p className="page-lead">
           These studies reconstruct the creative thinking and design process around selected briefs.
           They are labelled explicitly as concept reconstructions.
         </p>
-      </div>
+      </header>
 
       <div className="process-list">
         {studies.map((s, i) => {
@@ -1551,229 +1772,406 @@ function Process() {
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }
 
 /* ═══════════════════════════════════════════
-   Info: About Anuj
+   INFO PAGE (/info)
    ═══════════════════════════════════════════ */
-function Info() {
+function InfoPage() {
   return (
-    <section className="info" id="info">
-      <div className="section-eyebrow">
-        <span>03 / INFO</span>
-        <span>ABOUT THE PERSON BEHIND THE WORK</span>
-      </div>
-
-      <div className="info-hero">
-        <h2>
-          I'M JUST A KID
+    <div className="page-container info-page">
+      <header className="page-header info-page-header">
+        <h1 className="page-title info-title">
+          I’M JUST A KID
           <br />
-          WITH AN
+          WITH AN IMAGINATION
           <br />
-          <em>IMAGINATION.</em>
-        </h2>
-        <p>
-          I'm happy taking on things I've never done before. Give me a problem, a blank canvas, or
-          something slightly ridiculous. I'll figure out where to take it.
+          <em>THAT WON’T SIT STILL.</em>
+        </h1>
+        <p className="page-lead info-lead">
+          Curiosity, experimentation, and visual storytelling. Give me a problem, a blank canvas,
+          or something slightly ridiculous — I'll figure out where to take it.
+          If it’s interesting, I’m interested.
         </p>
-      </div>
+      </header>
 
-      <div className="info-grid">
-        <div>
-          <span>WHAT I DO</span>
-          <b>
-            Brand campaigns
-            <br />
-            Social design
-            <br />
-            Motion design
-            <br />
-            Visual storytelling
-            <br />
-            AI-assisted exploration
-          </b>
+      <div className="info-editorial-layout">
+        <div className="info-block">
+          <span className="info-block-label">BACKGROUND</span>
+          <div className="info-timeline">
+            <div className="info-timeline-entry">
+              <span className="info-timeline-date">MAY 2024 — FEB 2025</span>
+              <h3 className="info-timeline-role">HV Production / Horizon Visuals</h3>
+              <p className="info-timeline-desc">
+                Concert posters, marketing, social media campaigns
+              </p>
+            </div>
+            <div className="info-timeline-entry">
+              <span className="info-timeline-date">FEB 2025 — PRESENT</span>
+              <h3 className="info-timeline-role">Xanadu Brands</h3>
+              <p className="info-timeline-desc">
+                Expanded from Photoshop & Illustrator into After Effects, video editing and motion
+              </p>
+            </div>
+          </div>
         </div>
-        <div>
-          <span>TOOLS</span>
-          <b>
-            Photoshop
-            <br />
-            Illustrator
-            <br />
-            After Effects
-            <br />
-            Figma
-            <br />
-            AI visual tools
-          </b>
+
+        <div className="info-block">
+          <span className="info-block-label">TOOLS</span>
+          <div className="info-tools-editorial">
+            <span>PHOTOSHOP</span>
+            <span className="tool-sep">/</span>
+            <span>ILLUSTRATOR</span>
+            <span className="tool-sep">/</span>
+            <span>AFTER EFFECTS</span>
+            <span className="tool-sep">/</span>
+            <span>FIGMA</span>
+            <span className="tool-sep">/</span>
+            <span>AI TOOLS</span>
+          </div>
         </div>
-        <div>
-          <span>EXPERIENCE</span>
-          <b>
-            May 2024 — Feb 2025
-            <br />
-            Horizon Visuals
-            <br />
-            <br />
-            Feb 2025 — Present
-            <br />
-            Xanadu Brands
-          </b>
-        </div>
-        <div>
-          <span>THE ATTITUDE</span>
-          <b>
-            Bring it on.
-            <br />
-            Whatever you have.
-          </b>
+
+        <div className="info-block info-block-stance">
+          <span className="info-block-label">STANCE</span>
+          <p className="info-stance-text">Bring it on.</p>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
 /* ═══════════════════════════════════════════
-   Contact
+   CONTACT PAGE (/contact)
    ═══════════════════════════════════════════ */
-function Contact() {
+function ContactPage() {
   const [sent, setSent] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    projectType: "",
+    message: "",
+  });
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setSent(true);
   };
 
   return (
-    <section className="contact" id="contact">
-      <div className="section-eyebrow">
-        <span>04 / CONTACT</span>
-        <span>LET'S MAKE SOMETHING WORTH LOOKING AT</span>
-      </div>
-
-      <div className="contact-layout">
-        <div>
-          <h2>
-            HAVE SOMETHING
+    <div className="contact-page-container">
+      {/* Editorial Header Section */}
+      <div className="contact-editorial-header">
+        {/* Left Side: Headline & Narrative */}
+        <div className="contact-intro-col">
+          <span className="contact-tag">CONTACT</span>
+          <h1 className="contact-hero-title">
+            LET’S CREATE
             <br />
-            <em>interesting?</em>
-          </h2>
-          <p>Bring the brief, the half-formed idea, or the completely strange one.</p>
+            SOMETHING MEANINGFUL.
+          </h1>
+          <p className="contact-lead-text">
+            I’m always open to new ideas, collaborations and opportunities.
+            <br />
+            If you have a project in mind, just say hello.
+          </p>
         </div>
 
+        {/* Vertical Divider & Right Side: Other Ways to Reach Me */}
+        <div className="contact-info-col">
+          <div className="contact-info-block">
+            <span className="contact-info-heading">OTHER WAYS TO REACH ME</span>
+
+            <div className="contact-info-item">
+              <span className="contact-field-label">EMAIL</span>
+              <a
+                href="mailto:yashlohia75@gmail.com"
+                className="contact-info-link"
+                data-cursor="EMAIL"
+              >
+                yashlohia75@gmail.com
+              </a>
+            </div>
+
+            <div className="contact-info-item">
+              <span className="contact-field-label">LOCATION</span>
+              <span className="contact-info-value">India</span>
+            </div>
+
+            <div className="contact-info-item">
+              <span className="contact-field-label">LINKEDIN</span>
+              <a
+                href="https://www.linkedin.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="contact-info-link"
+                data-cursor="LINK"
+              >
+                LinkedIn ↗
+              </a>
+            </div>
+
+            <div className="contact-info-item">
+              <span className="contact-field-label">BEHANCE</span>
+              <a
+                href="https://www.behance.net"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="contact-info-link"
+                data-cursor="LINK"
+              >
+                Behance ↗
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="contact-editorial-divider" />
+
+      {/* Form Section */}
+      <div className="contact-form-section">
         {sent ? (
-          <div className="sent">
-            <span>MESSAGE RECEIVED.</span>
-            <b>I'll get back to you soon.</b>
-            <button onClick={() => setSent(false)}>SEND ANOTHER ↗</button>
+          <div className="contact-sent-card">
+            <span className="contact-tag">MESSAGE RECEIVED</span>
+            <h2 className="contact-sent-heading">THANK YOU FOR REACHING OUT.</h2>
+            <p className="contact-sent-sub">
+              Your message has been received. I’ll review your details and get back to you soon.
+            </p>
+            <button
+              type="button"
+              className="contact-resend-btn"
+              onClick={() => {
+                setSent(false);
+                setFormData({ name: "", email: "", projectType: "", message: "" });
+              }}
+              data-cursor="CLICK"
+            >
+              ← SEND ANOTHER MESSAGE
+            </button>
           </div>
         ) : (
-          <form onSubmit={submit}>
-            <label>
-              <span>NAME</span>
-              <input required name="name" />
-            </label>
-            <label>
-              <span>EMAIL</span>
-              <input required type="email" name="email" />
-            </label>
-            <label className="wide">
-              <span>WHAT ARE WE MAKING?</span>
-              <input name="subject" />
-            </label>
-            <label className="wide">
-              <span>MESSAGE</span>
-              <textarea required name="message" rows={5} />
-            </label>
-            <button className="send" data-cursor="SEND">
-              SEND IT MY WAY ↗
-            </button>
+          <form onSubmit={submit} className="contact-form-grid">
+            {/* Row 1: Name & Email */}
+            <div className="contact-form-group">
+              <label htmlFor="contact-name" className="contact-field-label">
+                NAME
+              </label>
+              <input
+                id="contact-name"
+                name="name"
+                type="text"
+                required
+                placeholder="Your name"
+                value={formData.name}
+                onChange={handleChange}
+                className="contact-input"
+              />
+            </div>
+
+            <div className="contact-form-group">
+              <label htmlFor="contact-email" className="contact-field-label">
+                EMAIL
+              </label>
+              <input
+                id="contact-email"
+                name="email"
+                type="email"
+                required
+                placeholder="your@email.com"
+                value={formData.email}
+                onChange={handleChange}
+                className="contact-input"
+              />
+            </div>
+
+            {/* Row 2: Project Type & Message */}
+            <div className="contact-form-group">
+              <label htmlFor="contact-project-type" className="contact-field-label">
+                WHAT ARE WE MAKING?
+              </label>
+              <select
+                id="contact-project-type"
+                name="projectType"
+                value={formData.projectType}
+                onChange={handleChange}
+                className="contact-select"
+              >
+                <option value="" disabled>
+                  Select a project type ↓
+                </option>
+                <option value="brand-campaign">Brand Campaign & Identity</option>
+                <option value="social-digital">Social & Digital Design</option>
+                <option value="motion-3d">Motion Direction & 3D</option>
+                <option value="creative-storytelling">Visual Storytelling & Direction</option>
+                <option value="other">Other Inquiry / Just Saying Hello</option>
+              </select>
+            </div>
+
+            <div className="contact-form-group contact-message-group">
+              <label htmlFor="contact-message" className="contact-field-label">
+                MESSAGE
+              </label>
+              <textarea
+                id="contact-message"
+                name="message"
+                required
+                rows={6}
+                placeholder="Tell me about your idea..."
+                value={formData.message}
+                onChange={handleChange}
+                className="contact-textarea"
+              />
+            </div>
+
+            {/* Row 3: Submit CTA */}
+            <div className="contact-action-row">
+              <button
+                type="submit"
+                className="contact-submit-btn"
+                data-cursor="SEND"
+              >
+                <span className="contact-submit-arrow">→</span>
+                <span className="contact-submit-text">SEND IT MY WAY</span>
+              </button>
+            </div>
           </form>
         )}
       </div>
-
-      <div className="contact-bottom">
-        <span>OR REACH OUT DIRECTLY</span>
-        <a href="mailto:yashlohia75@gmail.com">yashlohia75@gmail.com</a>
-      </div>
-    </section>
+    </div>
   );
 }
 
 /* ═══════════════════════════════════════════
-   Main Application Architecture
+   MAIN APP ARCHITECTURE
    ═══════════════════════════════════════════ */
 function App() {
   const [loading, setLoading] = useState(true);
-  const [active, setActive] = useState(projectOrder[0]);
+  const [route, setRoute] = useState<Route>(() => parsePath(window.location.pathname));
 
-  // Exclude empty projects (Su-Kam with 0 media items) from visible exhibition
-  const visibleProjects = useMemo(
-    () => projectOrder.filter((p) => media.some((m) => m.project === p)),
-    []
-  );
+  // Dynamic SEO management
+  useDocumentSEO(route);
+
+  // Lightbox state
+  const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
+  const [lightboxItems, setLightboxItems] = useState<MediaItem[]>([]);
+
+  // Visible projects strictly following the approved canonical sequence
+  const visibleProjects = VISIBLE_PROJECT_SEQUENCE;
+
+  const navigate = useCallback((path: string) => {
+    window.history.pushState({}, "", path);
+    setRoute(parsePath(path));
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => {
+      setRoute(parsePath(window.location.pathname));
+      window.scrollTo({ top: 0, behavior: "instant" });
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 1800);
     return () => clearTimeout(t);
   }, []);
 
+  // Lightbox open / navigation handlers
+  const openLightbox = useCallback((item: MediaItem, projectItems?: MediaItem[]) => {
+    setLightboxItem(item);
+    if (projectItems && projectItems.length > 0) {
+      setLightboxItems(projectItems);
+    } else {
+      const pItems = media.filter((m) => m.project === item.project);
+      setLightboxItems(pItems.length > 0 ? pItems : [item]);
+    }
+  }, []);
+
+  const closeLightbox = useCallback(() => {
+    setLightboxItem(null);
+  }, []);
+
+  const nextLightbox = useCallback(() => {
+    if (!lightboxItem || lightboxItems.length <= 1) return;
+    const idx = lightboxItems.findIndex((m) => m.id === lightboxItem.id);
+    const nextIdx = idx < lightboxItems.length - 1 ? idx + 1 : 0;
+    setLightboxItem(lightboxItems[nextIdx]);
+  }, [lightboxItem, lightboxItems]);
+
+  const prevLightbox = useCallback(() => {
+    if (!lightboxItem || lightboxItems.length <= 1) return;
+    const idx = lightboxItems.findIndex((m) => m.id === lightboxItem.id);
+    const prevIdx = idx > 0 ? idx - 1 : lightboxItems.length - 1;
+    setLightboxItem(lightboxItems[prevIdx]);
+  }, [lightboxItem, lightboxItems]);
+
+  const lightboxValue = useMemo(() => ({ openLightbox }), [openLightbox]);
+
   return (
-    <>
+    <LightboxContext.Provider value={lightboxValue}>
       <Loader done={!loading} />
       <Cursor />
 
-      <nav className="nav">
-        <button data-cursor="TOP" onClick={() => scrollToId("top")}>
-          ANUJ®
-        </button>
-        <div>
-          <button data-cursor="WORK" onClick={() => scrollToId("work")}>
-            WORK
-          </button>
-          <button data-cursor="PROCESS" onClick={() => scrollToId("process")}>
-            PROCESS
-          </button>
-          <button data-cursor="INFO" onClick={() => scrollToId("info")}>
-            INFO
-          </button>
-          <button data-cursor="CONTACT" onClick={() => scrollToId("contact")}>
-            CONTACT
-          </button>
-        </div>
-      </nav>
+      <SiteNavigation currentRoute={route} onNavigate={navigate} />
 
       <main>
-        <Hero ready={!loading} />
+        {route.page === "home" && (
+          <>
+            <Hero ready={!loading} onExploreWork={() => navigate("/work")} />
+            <HomeFeaturedWork onNavigate={navigate} />
+          </>
+        )}
 
-        <WorkIndex
-          projects={visibleProjects}
-          active={active}
-          onPick={setActive}
-        />
+        {route.page === "work" && (
+          <WorkArchivePage onNavigate={navigate} />
+        )}
 
-        {visibleProjects.map((p, i) => (
-          <ProjectSection
-            key={p}
-            project={p}
-            index={i}
-            totalCount={visibleProjects.length}
-            isLast={i === visibleProjects.length - 1}
+        {route.page === "project" && (
+          <ProjectDetailPage
+            project={route.project}
+            onNavigate={navigate}
           />
-        ))}
+        )}
 
-        <Process />
-        <Info />
-        <Contact />
+        {route.page === "process" && <ProcessPage />}
+
+        {route.page === "info" && <InfoPage />}
+
+        {route.page === "contact" && <ContactPage />}
+
+        {route.page === "not-found" && <NotFoundPage onNavigate={navigate} />}
       </main>
+
+      {/* Premium Media Lightbox Modal */}
+      <AnimatePresence>
+        {lightboxItem && (
+          <MediaLightbox
+            item={lightboxItem}
+            items={lightboxItems}
+            onClose={closeLightbox}
+            onPrev={prevLightbox}
+            onNext={nextLightbox}
+          />
+        )}
+      </AnimatePresence>
 
       <footer>
         <span>ANUJ® / CREATIVE SUPERVISOR</span>
         <span>DESIGN / MOTION / VISUAL EXPLORATION</span>
         <span>© 2026</span>
       </footer>
-    </>
+    </LightboxContext.Provider>
   );
 }
 

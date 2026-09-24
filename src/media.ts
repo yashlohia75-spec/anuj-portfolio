@@ -1,3 +1,7 @@
+import mediaOrientationsData from "./media-orientations.json";
+
+export type MediaOrientation = "landscape" | "portrait" | "square";
+
 export type MediaItem = {
   id: string;
   type: "image" | "video";
@@ -5,7 +9,15 @@ export type MediaItem = {
   source: string;
   src: string;
   videoSrc?: string;
+  width: number;
+  height: number;
+  orientation: MediaOrientation;
 };
+
+const orientationMap = mediaOrientationsData as Record<
+  string,
+  { width: number; height: number; orientation: MediaOrientation }
+>;
 
 /* ── folder-name maps (actual folder names on disk) ── */
 
@@ -18,6 +30,7 @@ const imgFolder: Record<string, string> = {
   "Havells":               "havells",
   "Humsafar":              "humsafar",
   "Su-Kam":                "sukam",
+  "Education":             "bahra",
   "Bahra University":      "bahra",
   "Hospitality":           "hospitality",
 };
@@ -31,6 +44,7 @@ const vidFolder: Record<string, string> = {
   "Havells":               "havells",
   "Humsafar":              "humsafar",
   "Su-Kam":                "sukam",
+  "Education":             "bahra",
   "Bahra University":      "bahra",
   "Hospitality":           "hospitality",
 };
@@ -42,24 +56,61 @@ const vidFolder: Record<string, string> = {
 const IMG = "/media/IMAGES";
 const VID = "/media/videos";
 
-const img = (id: string, project: string, filename: string): MediaItem => ({
-  id, project, type: "image", source: filename,
-  src: `${IMG}/${imgFolder[project]}/${filename}`,
-});
+const img = (id: string, project: string, filename: string): MediaItem => {
+  const meta = orientationMap[id] || { width: 1080, height: 1350, orientation: "portrait" };
+  return {
+    id,
+    project,
+    type: "image",
+    source: filename,
+    src: `${IMG}/${imgFolder[project]}/${filename}`,
+    width: meta.width,
+    height: meta.height,
+    orientation: meta.orientation,
+  };
+};
 
 // posterPath is relative to the IMAGES root (e.g. "shyamoli/poster.jpg").
 // If omitted, the video has no poster thumbnail.
-const vid = (id: string, project: string, filename: string, posterPath?: string): MediaItem => ({
-  id, project, type: "video", source: filename,
-  src: posterPath ? `${IMG}/${posterPath}` : "",
-  videoSrc: `${VID}/${vidFolder[project]}/${filename}`,
-});
+const vid = (id: string, project: string, filename: string, posterPath?: string): MediaItem => {
+  const meta = orientationMap[id] || { width: 1080, height: 1920, orientation: "portrait" };
+  return {
+    id,
+    project,
+    type: "video",
+    source: filename,
+    src: posterPath ? `${IMG}/${posterPath}` : "",
+    videoSrc: `${VID}/${vidFolder[project]}/${filename}`,
+    width: meta.width,
+    height: meta.height,
+    orientation: meta.orientation,
+  };
+};
 
 /* ── project order ── */
 
 export const projectOrder = [
-  "Shyamoli", "Trident Group", "Standard Electricals", "Indo Farm",
-  "Halonix", "Bahra University", "Havells", "Su-Kam", "Humsafar",
+  "Trident Group",
+  "Standard Electricals",
+  "Indo Farm",
+  "Shyamoli",
+  "Halonix",
+  "Education",
+  "Havells",
+  "Humsafar",
+  "Hospitality",
+  "Su-Kam",
+];
+
+export const visibleProjectsSequence = [
+  "Trident Group",
+  "Standard Electricals",
+  "Indo Farm",
+  "Shyamoli",
+  "Halonix",
+  "Education",
+  "Havells",
+  "Humsafar",
   "Hospitality",
 ];
 
@@ -173,18 +224,18 @@ export const media: MediaItem[] = [
   img("hu-08","Humsafar","jodhpur-welcome-static-copy.jpg"),
 
   // ════════════════════════════════════════
-  // Bahra University  (2 images · 3 videos)
+  // Education  (2 images · 3 videos)
   // ════════════════════════════════════════
   // Note: "june 5 copy.pdf" excluded — PDF cannot display as an image.
-  img("bu-01","Bahra University","legal studies copy.jpg"),
-  img("bu-02","Bahra University","world environmental health day copy 1.jpg"),
+  img("bu-01","Education","legal studies copy.jpg"),
+  img("bu-02","Education","world environmental health day copy 1.jpg"),
 
-  vid("bu-v1","Bahra University","bu christmas_5.mp4"),
-  vid("bu-v2","Bahra University","bu holi ad_3.mp4"),
-  vid("bu-v3","Bahra University","hgpi christmas 2_6 subs.mp4"),
+  vid("bu-v1","Education","bu christmas_5.mp4"),
+  vid("bu-v2","Education","bu holi ad_3.mp4"),
+  vid("bu-v3","Education","hgpi christmas 2_6 subs.mp4"),
 
   // ════════════════════════════════════════
-  // Hospitality  (9 images · 5 videos)
+  // Hospitality  (8 images · 6 videos)
   // ════════════════════════════════════════
   img("ho-01","Hospitality","4th-august-2-copy.jpg"),
   img("ho-02","Hospitality","9th-july-copy.jpg"),
@@ -192,15 +243,20 @@ export const media: MediaItem[] = [
   img("ho-04","Hospitality","25th-august-copy.jpg"),
   img("ho-05","Hospitality","11th july copy.jpg"),
   img("ho-06","Hospitality","14th april copy 1.jpg"),
-  img("ho-07","Hospitality","16th july copy.jpg"),
-  img("ho-08","Hospitality","28th july copy.jpg"),
-  img("ho-09","Hospitality","rakhi ad ppz copy.jpg"),
 
   vid("ho-v1","Hospitality","20th april_2.mp4"),
   vid("ho-v2","Hospitality","21st april_2.mp4"),
   vid("ho-v3","Hospitality","22 august.mp4"),
   vid("ho-v4","Hospitality","concours reel_final.mp4"),
   vid("ho-v5","Hospitality","june 3_1.mp4"),
+
+  // Curated 3-Column Editorial Row:
+  // LEFT: "A Collection Seasonal Delights"
+  // CENTER: New Video (Park Plaza Reel)
+  // RIGHT: Park Plaza Rakhi creative
+  img("ho-08","Hospitality","28th july copy.jpg"),
+  vid("ho-v6","Hospitality","ppz reel 15 th part 2.mp4"),
+  img("ho-09","Hospitality","rakhi ad ppz copy.jpg"),
 ];
 
 const slug = (name: string) =>

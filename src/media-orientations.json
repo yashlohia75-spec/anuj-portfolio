@@ -1,0 +1,457 @@
+{
+  "sh-01": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "sh-02": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "sh-03": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "sh-04": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "sh-05": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "sh-06": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "sh-07": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "sh-08": {
+    "width": 1600,
+    "height": 1066,
+    "orientation": "landscape"
+  },
+  "sh-09": {
+    "width": 1600,
+    "height": 1000,
+    "orientation": "landscape"
+  },
+  "sh-10": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "sh-11": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "sh-12": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "sh-13": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "sh-14": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "sh-v1": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "sh-v2": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "sh-v3": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "sh-v4": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "sh-v5": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "tr-01": {
+    "width": 3240,
+    "height": 1350,
+    "orientation": "landscape"
+  },
+  "tr-02": {
+    "width": 2048,
+    "height": 640,
+    "orientation": "landscape"
+  },
+  "tr-v1": {
+    "width": 1500,
+    "height": 2000,
+    "orientation": "portrait"
+  },
+  "tr-v2": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "tr-v3": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "tr-v4": {
+    "width": 1012,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "tr-v5": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "tr-v6": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "se-01": {
+    "width": 2160,
+    "height": 1350,
+    "orientation": "landscape"
+  },
+  "se-v1": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "se-v2": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "se-v3": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "se-v4": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "se-v5": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "se-v6": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "se-v7": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "se-v8": {
+    "width": 1012,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "se-v9": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "se-v10": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ha-01": {
+    "width": 2160,
+    "height": 1350,
+    "orientation": "landscape"
+  },
+  "ha-02": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ha-03": {
+    "width": 3240,
+    "height": 1440,
+    "orientation": "landscape"
+  },
+  "ha-04": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ha-v1": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ha-v2": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ha-v3": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ha-v4": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "ha-v5": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ha-v6": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ha-v7": {
+    "width": 1920,
+    "height": 1080,
+    "orientation": "landscape"
+  },
+  "ha-v8": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ha-v9": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ha-v10": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "if-01": {
+    "width": 3240,
+    "height": 1440,
+    "orientation": "landscape"
+  },
+  "if-02": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "if-03": {
+    "width": 2180,
+    "height": 1440,
+    "orientation": "landscape"
+  },
+  "if-04": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "if-v1": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "if-v2": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "if-v3": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "if-v4": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "if-v5": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "if-v6": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "hv-01": {
+    "width": 2048,
+    "height": 682,
+    "orientation": "landscape"
+  },
+  "hu-01": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "hu-02": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "hu-03": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "hu-04": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "hu-05": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "hu-06": {
+    "width": 2048,
+    "height": 910,
+    "orientation": "landscape"
+  },
+  "hu-07": {
+    "width": 2048,
+    "height": 910,
+    "orientation": "landscape"
+  },
+  "hu-08": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "bu-01": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "bu-02": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "bu-v1": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "bu-v2": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "bu-v3": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ho-01": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ho-02": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ho-03": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "ho-04": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "ho-05": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ho-06": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "ho-07": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "ho-08": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "ho-09": {
+    "width": 1080,
+    "height": 1440,
+    "orientation": "portrait"
+  },
+  "ho-v1": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "ho-v2": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "ho-v3": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "ho-v4": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "ho-v5": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  },
+  "ho-v6": {
+    "width": 1080,
+    "height": 1920,
+    "orientation": "portrait"
+  }
+}
