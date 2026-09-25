@@ -986,6 +986,95 @@ button {
   display: block;
 }
 
+/* PDF media treatment: PDF = IMAGE */
+.media-pdf-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  background: #090909;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.media-pdf-object {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  pointer-events: none;
+  background: #090909;
+}
+.media-pdf-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+  background: radial-gradient(circle at center, rgba(156, 134, 184, 0.08) 0%, transparent 70%), #0c0c0c;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.media-pdf-badge {
+  font: 8.5px Broche;
+  letter-spacing: 0.22em;
+  color: #9c86b8;
+  padding: 4px 10px;
+  border: 1px solid rgba(156, 134, 184, 0.3);
+  margin-bottom: 18px;
+}
+.media-pdf-title {
+  font: 18px Broche;
+  letter-spacing: 0.08em;
+  color: #fff;
+  margin-bottom: 20px;
+  max-width: 280px;
+}
+.media-pdf-action {
+  font: 9px Broche;
+  letter-spacing: 0.16em;
+  color: #aaa;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 2px;
+}
+.lightbox-pdf-wrapper {
+  width: 80vw;
+  max-width: 1000px;
+  height: 80vh;
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lightbox-pdf-object {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.lightbox-pdf-fallback {
+  text-align: center;
+  padding: 30px;
+}
+.lightbox-pdf-link {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font: 10px Broche;
+  letter-spacing: 0.16em;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+.lightbox-pdf-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
 .media-light-sweep {
   position: absolute;
   inset: 0;

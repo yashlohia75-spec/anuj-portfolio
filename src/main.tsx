@@ -25,11 +25,11 @@ export const REPRESENTATIVE_MEDIA: Record<string, string> = {
   "Indo Farm": "if-01",
   "Shyamoli": "sh-08",
   "Halonix": "ha-v6",
-  Education: "bu-01",
+  "Education": "bu-01",
   "Bahra University": "bu-01",
-  Havells: "hv-01",
-  Humsafar: "hu-01",
-  Hospitality: "ho-01",
+  "Havells": "hv-01",
+  "Humsafar": "hu-01",
+  "Hospitality": "ho-01",
 };
 
 /* ═══════════════════════════════════════════
@@ -884,7 +884,29 @@ function MediaLightbox({
               transition={{ duration: 0.2 }}
               style={{ display: "contents" }}
             >
-              {item.type === "video" ? (
+              {item.isPdf || item.src.toLowerCase().endsWith(".pdf") ? (
+                <div className="lightbox-pdf-wrapper">
+                  <object
+                    data={`${item.src}#toolbar=1`}
+                    type="application/pdf"
+                    className="lightbox-pdf-object"
+                  >
+                    <div className="lightbox-pdf-fallback">
+                      <p style={{ font: "12px Broche", letterSpacing: "0.14em", color: "#ccc", marginBottom: "16px" }}>
+                        {item.source}
+                      </p>
+                      <a
+                        href={item.src}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="lightbox-pdf-link"
+                      >
+                        OPEN ORIGINAL PDF IN NEW TAB ↗
+                      </a>
+                    </div>
+                  </object>
+                </div>
+              ) : item.type === "video" ? (
                 <CustomVideoPlayer item={item} />
               ) : (
                 <img src={item.src} alt={`${item.project} creative`} className="lightbox-img" />
@@ -912,7 +934,7 @@ function MediaLightbox({
 
 /* ═══════════════════════════════════════════
    HIGH-PERFORMANCE MEDIA CARD
-   - Clickable: Opens Media Lightbox
+   - Clickable: Opens Media Lightbox (or native viewer for PDFs)
    - Aspect ratio preserved, no stretch or vertical takeover
    ═══════════════════════════════════════════ */
 function MediaCard({
@@ -936,6 +958,12 @@ function MediaCard({
   const [inView, setInView] = useState(false);
   const [playing, setPlaying] = useState(false);
   const { openLightbox } = React.useContext(LightboxContext);
+
+  const isPdf = Boolean(
+    item.isPdf ||
+    item.src.toLowerCase().endsWith(".pdf") ||
+    item.source.toLowerCase().endsWith(".pdf")
+  );
 
   const effectiveAspect =
     aspect ||
@@ -969,18 +997,26 @@ function MediaCard({
     return () => observer.disconnect();
   }, [item.type]);
 
+  const handleCardClick = () => {
+    if (isPdf) {
+      window.open(item.src, "_blank", "noopener,noreferrer");
+      return;
+    }
+    openLightbox(item, projectItems);
+  };
+
   return (
     <div
       ref={containerRef}
       className={`media-card media-${variant} media-aspect-${effectiveAspect} ${
         inView ? "media-in-view" : ""
       }`}
-      data-cursor={item.type === "video" ? "PLAY" : "VIEW"}
-      onClick={() => openLightbox(item, projectItems)}
+      data-cursor={item.type === "video" ? "PLAY" : isPdf ? "OPEN" : "VIEW"}
+      onClick={handleCardClick}
     >
       <div className="media-frame">
         <span className="media-interactive-cue">
-          {item.type === "video" ? "▶ PREVIEW" : "VIEW"}
+          {item.type === "video" ? "▶ PREVIEW" : isPdf ? "📄 VIEW PDF ↗" : "VIEW"}
         </span>
         {item.type === "video" ? (
           <video
@@ -994,6 +1030,20 @@ function MediaCard({
             onPlay={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
           />
+        ) : isPdf ? (
+          <div className="media-pdf-wrapper">
+            <object
+              data={`${item.src}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
+              type="application/pdf"
+              className="media-pdf-object"
+            >
+              <div className="media-pdf-card">
+                <span className="media-pdf-badge">PDF DOCUMENT</span>
+                <h4 className="media-pdf-title">{caption || "CAMPUS PUBLICATION"}</h4>
+                <span className="media-pdf-action">OPEN ORIGINAL PDF ↗</span>
+              </div>
+            </object>
+          </div>
         ) : (
           <img
             src={item.src}
@@ -1010,7 +1060,7 @@ function MediaCard({
           {caption && <span className="media-caption">{caption}</span>}
         </div>
         <span className="media-type-badge">
-          {item.type === "video" ? "▶ MOTION" : "STILL"}
+          {item.type === "video" ? "▶ MOTION" : isPdf ? "📄 PDF" : "STILL"}
         </span>
       </div>
     </div>
@@ -1088,10 +1138,12 @@ const CURATED_CAPTIONS: Record<string, string> = {
   "tr-v4": "RAKHI CAMPAIGN / BRAND FILM",
   "tr-v5": "WORLD COTTON DAY / SUSTAINABILITY",
   "tr-v6": "SPRING CAMPAIGN / BRAND MOTION",
+  "tr-v7": "NATIONAL FARMERS' DAY / BRAND FILM",
   "se-01": "PRODUCT CATALOGUE STILL",
   "se-v1": "DROID M WATER HEATER / PRODUCT ANIMATION",
   "se-v3": "PRIMAIR FAN / PRODUCT FILM",
   "se-v10": "SMART WIFI PLUG / PRODUCT FEATURE",
+  "se-v11": "STANDARD ELECTRICALS / MOTION CAMPAIGN",
   "if-01": "HEAVY MACHINERY / FIELD CAROUSEL",
   "if-02": "TRACTOR SERIES / EDITORIAL AD",
   "if-03": "ARMY DAY SPECIAL / HEAVY COMMUNICATOR",
@@ -1111,6 +1163,7 @@ const CURATED_CAPTIONS: Record<string, string> = {
   "ha-v10": "ROPELIGHT / COMMERCIAL",
   "bu-01": "SCHOOL OF LAW & LEGAL STUDIES",
   "bu-02": "WORLD ENVIRONMENTAL HEALTH DAY",
+  "bu-03": "WORLD ENVIRONMENT DAY / CAMPAIGN PUBLICATION",
   "bu-v1": "CAMPUS CHRISTMAS CELEBRATION FILM",
   "bu-v2": "CAMPUS HOLI AD",
   "bu-v3": "HGPI FESTIVAL REEL / MOTION",

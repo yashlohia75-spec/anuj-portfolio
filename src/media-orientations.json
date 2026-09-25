@@ -453,5 +453,20 @@
     "width": 1080,
     "height": 1920,
     "orientation": "portrait"
+  },
+  "bu-03": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "se-v11": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
+  },
+  "tr-v7": {
+    "width": 1080,
+    "height": 1350,
+    "orientation": "portrait"
   }
 }

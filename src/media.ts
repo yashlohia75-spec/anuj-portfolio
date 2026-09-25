@@ -12,6 +12,7 @@ export type MediaItem = {
   width: number;
   height: number;
   orientation: MediaOrientation;
+  isPdf?: boolean;
 };
 
 const orientationMap = mediaOrientationsData as Record<
@@ -58,6 +59,7 @@ const VID = "/media/videos";
 
 const img = (id: string, project: string, filename: string): MediaItem => {
   const meta = orientationMap[id] || { width: 1080, height: 1350, orientation: "portrait" };
+  const isPdf = filename.toLowerCase().endsWith(".pdf");
   return {
     id,
     project,
@@ -67,6 +69,7 @@ const img = (id: string, project: string, filename: string): MediaItem => {
     width: meta.width,
     height: meta.height,
     orientation: meta.orientation,
+    isPdf,
   };
 };
 
@@ -144,7 +147,7 @@ export const media: MediaItem[] = [
 
 
   // ════════════════════════════════════════
-  // Trident Group  (2 images · 6 videos)
+  // Trident Group  (2 images · 7 videos)
   // ════════════════════════════════════════
   img("tr-01","Trident Group","trident sleep expo copy.jpg"),
   img("tr-02","Trident Group","what-is-air-technology-carousel-copy.jpg"),
@@ -155,9 +158,10 @@ export const media: MediaItem[] = [
   vid("tr-v4","Trident Group","trident rakhi 2_2.mp4","trident-group/690ddf67cf37502f.jpg"),
   vid("tr-v5","Trident Group","world cotton day trident_2.mp4","trident-group/848fed9a37e04f62.jpg"),
   vid("tr-v6","Trident Group","april 11_7.mp4"),
+  vid("tr-v7","Trident Group","trident national farmers' day_1.mp4"),
 
   // ════════════════════════════════════════
-  // Standard Electricals  (1 image · 10 videos)
+  // Standard Electricals  (1 image · 11 videos)
   // ════════════════════════════════════════
   img("se-01","Standard Electricals","20th sept copy.jpg"),
 
@@ -171,6 +175,7 @@ export const media: MediaItem[] = [
   vid("se-v8","Standard Electricals","standard electricals independence day.mp4"),
   vid("se-v9","Standard Electricals","standard holi ad_3.mp4"),
   vid("se-v10","Standard Electricals","standard smart wifi plug_1.mp4"),
+  vid("se-v11","Standard Electricals","17th sept (1).mp4"),
 
   // ════════════════════════════════════════
   // Halonix  (4 images · 10 videos)
@@ -224,11 +229,11 @@ export const media: MediaItem[] = [
   img("hu-08","Humsafar","jodhpur-welcome-static-copy.jpg"),
 
   // ════════════════════════════════════════
-  // Education  (2 images · 3 videos)
+  // Education  (3 images [incl. 1 PDF] · 3 videos)
   // ════════════════════════════════════════
-  // Note: "june 5 copy.pdf" excluded — PDF cannot display as an image.
   img("bu-01","Education","legal studies copy.jpg"),
   img("bu-02","Education","world environmental health day copy 1.jpg"),
+  img("bu-03","Education","june 5 copy.pdf"),
 
   vid("bu-v1","Education","bu christmas_5.mp4"),
   vid("bu-v2","Education","bu holi ad_3.mp4"),
