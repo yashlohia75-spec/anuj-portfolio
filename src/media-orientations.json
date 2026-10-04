@@ -468,5 +468,10 @@
     "width": 1080,
     "height": 1350,
     "orientation": "portrait"
+  },
+  "tr-v8": {
+    "width": 1920,
+    "height": 1080,
+    "orientation": "landscape"
   }
 }

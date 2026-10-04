@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { AnimatePresence, motion, useMotionValue, useScroll, useSpring, useTransform } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
 import { brandSlug, media, MediaItem, projectOrder, visibleProjectsSequence } from "./media";
 import "./styles.css";
 
@@ -157,7 +157,7 @@ interface LightboxContextType {
   openLightbox: (item: MediaItem, projectItems?: MediaItem[]) => void;
 }
 const LightboxContext = React.createContext<LightboxContextType>({
-  openLightbox: () => {},
+  openLightbox: () => { },
 });
 
 /* ═══════════════════════════════════════════
@@ -167,7 +167,6 @@ type Route =
   | { page: "home" }
   | { page: "work" }
   | { page: "project"; project: string }
-  | { page: "process" }
   | { page: "info" }
   | { page: "contact" }
   | { page: "not-found" };
@@ -184,10 +183,24 @@ function parsePath(path: string): Route {
     }
     return { page: "not-found" };
   }
-  if (clean === "/process") return { page: "process" };
+  // Process page removed — process is now integrated into the homepage personality
   if (clean === "/info") return { page: "info" };
   if (clean === "/contact") return { page: "contact" };
   return { page: "not-found" };
+}
+
+function getRouteKey(r: Route): string {
+  if (r.page === "project") return `project-${r.project}`;
+  return r.page;
+}
+
+function isSamePath(currentRoute: Route, targetPath: string): boolean {
+  const targetRoute = parsePath(targetPath);
+  if (currentRoute.page !== targetRoute.page) return false;
+  if (currentRoute.page === "project" && targetRoute.page === "project") {
+    return currentRoute.project === targetRoute.project;
+  }
+  return true;
 }
 
 function useDocumentSEO(route: Route) {
@@ -211,9 +224,6 @@ function useDocumentSEO(route: Route) {
     } else if (route.page === "contact") {
       title = "Contact — Anuj";
       desc = "Get in touch with Anuj for visual design, motion direction, and creative collaborations.";
-    } else if (route.page === "process") {
-      title = "Process — Anuj";
-      desc = "Creative methodology and visual exploration process.";
     } else if (route.page === "not-found") {
       title = "404 — Anuj";
       desc = "This page wandered off.";
@@ -618,13 +628,6 @@ function SiteNavigation({
           WORK
         </button>
         <button
-          data-cursor="PROCESS"
-          onClick={() => onNavigate("/process")}
-          className={currentRoute.page === "process" ? "is-active" : ""}
-        >
-          PROCESS
-        </button>
-        <button
           data-cursor="INFO"
           onClick={() => onNavigate("/info")}
           className={currentRoute.page === "info" ? "is-active" : ""}
@@ -664,7 +667,7 @@ function CustomVideoPlayer({ item }: { item: MediaItem }) {
         // Fallback with mute if browser autoplay policy blocks unmuted audio
         v.muted = true;
         setMuted(true);
-        v.play().then(() => setPlaying(true)).catch(() => {});
+        v.play().then(() => setPlaying(true)).catch(() => { });
       });
   }, [item.videoSrc]);
 
@@ -722,9 +725,9 @@ function CustomVideoPlayer({ item }: { item: MediaItem }) {
   const toggleFullscreen = () => {
     if (!wrapperRef.current) return;
     if (!document.fullscreenElement) {
-      wrapperRef.current.requestFullscreen().catch(() => {});
+      wrapperRef.current.requestFullscreen().catch(() => { });
     } else {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch(() => { });
     }
   };
 
@@ -982,7 +985,7 @@ function MediaCard({
         setInView(entry.isIntersecting);
         if (item.type === "video" && videoRef.current) {
           if (entry.isIntersecting) {
-            videoRef.current.play().catch(() => {});
+            videoRef.current.play().catch(() => { });
             setPlaying(true);
           } else {
             videoRef.current.pause();
@@ -995,7 +998,7 @@ function MediaCard({
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [item.type]);
+  }, [item.type, item.videoSrc]);
 
   const handleCardClick = () => {
     if (isPdf) {
@@ -1008,9 +1011,8 @@ function MediaCard({
   return (
     <div
       ref={containerRef}
-      className={`media-card media-${variant} media-aspect-${effectiveAspect} ${
-        inView ? "media-in-view" : ""
-      }`}
+      className={`media-card media-${variant} media-aspect-${effectiveAspect} ${inView ? "media-in-view" : ""
+        }`}
       data-cursor={item.type === "video" ? "PLAY" : isPdf ? "OPEN" : "VIEW"}
       onClick={handleCardClick}
     >
@@ -1023,6 +1025,7 @@ function MediaCard({
             ref={videoRef}
             src={item.videoSrc}
             poster={item.src || undefined}
+            autoPlay
             muted
             loop
             playsInline
@@ -1085,28 +1088,45 @@ function ProjectIntro({
   itemsCount?: number;
   onBackToWork?: () => void;
 }) {
+  const isReduced = Boolean(useReducedMotion());
+
   return (
     <header className="project-intro">
       <div className="project-marker">
         {onBackToWork && (
-          <button
+          <motion.button
             className="marker-index-btn"
             onClick={onBackToWork}
             data-cursor="BACK"
+            initial={{ opacity: 0, y: isReduced ? 0 : 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.03, ease: [0.16, 1, 0.3, 1] }}
           >
             ← WORK
-          </button>
+          </motion.button>
         )}
       </div>
 
       <div className="project-title-grid">
-        <h1 className="project-hero-title">{project}</h1>
-        <div className="project-meta-col">
+        <motion.h1
+          className="project-hero-title"
+          initial={{ opacity: 0, y: isReduced ? 0 : 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.06, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {project}
+        </motion.h1>
+        <motion.div
+          className="project-meta-col"
+          initial={{ opacity: 0, y: isReduced ? 0 : 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+        >
           <p className="project-statement">{projectMeta.intro}</p>
           <div className="project-meta-bottom">
             <span className="project-focus-text">{projectMeta.focus}</span>
           </div>
-        </div>
+        </motion.div>
       </div>
       <div className="project-header-rule" />
     </header>
@@ -1132,6 +1152,7 @@ const CURATED_CAPTIONS: Record<string, string> = {
   "sh-v5": "NIGHT HIGHWAY / ROUTE VISUAL",
   "tr-01": "EXHIBITION / SLEEP EXPO",
   "tr-02": "AIR TECHNOLOGY / PRODUCT COMMUNICATION",
+  "tr-v8": "CHRISTMAS BRAND FILM / ANIMATION",
   "tr-v1": "PAPER DIVISION / INDEPENDENCE DAY",
   "tr-v2": "PAPER EXPO / CLOSER TO NATURE",
   "tr-v3": "DUSSEHRA CAMPAIGN / FESTIVE MOTION",
@@ -1494,76 +1515,308 @@ function Hero({
 }
 
 /* ═══════════════════════════════════════════
-   HOME CURATED WORK SHOWCASE
-   A confident introductory exhibition (not an endless dump)
+   HOMEPAGE NARRATIVE
+   The full reading flow: Selected Work → Creative Fragment →
+   Who Is Anuj → How I Think → Tools → Archive → Contact CTA
    ═══════════════════════════════════════════ */
-function HomeFeaturedWork({
+
+/* --- Scroll-triggered fade-in wrapper --- */
+function RevealOnScroll({ children, delay = 0, className = "" }: { key?: React.Key; children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold: 0.12, rootMargin: "40px 0px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      initial={{ opacity: 0, y: 24 }}
+      animate={visible ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.7, delay, ease: [0.76, 0, 0.24, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function HomeNarrative({
   onNavigate,
 }: {
   onNavigate: (path: string) => void;
 }) {
-  const featured = ["Shyamoli", "Trident Group", "Halonix", "Humsafar"];
+  /* — 1. SELECTED WORK (3 curated projects: Trident hero, Shyamoli & Halonix pair) — */
+  const selectedWork = ["Trident Group", "Shyamoli", "Halonix"];
+
+  /* — 2. ARCHIVE (remaining visible projects not in selected) — */
+  const archiveWork = VISIBLE_PROJECT_SEQUENCE.filter((p) => !selectedWork.includes(p));
+
+  /* — Creative principles for "How I Think" — */
+  const principles = [
+    { word: "STORY", line: "The visual should communicate something." },
+    { word: "EXPERIMENT", line: "Try new tools and techniques without losing creative intent." },
+    { word: "DETAIL", line: "Small decisions create the final character." },
+    { word: "CHALLENGE", line: "Interesting problems produce interesting work." },
+  ];
+
+  /* — Tools vocabulary — */
+  const tools = [
+    { name: "PHOTOSHOP", hint: "layers · selections · composites" },
+    { name: "ILLUSTRATOR", hint: "anchors · paths · vectors" },
+    { name: "AFTER EFFECTS", hint: "keyframes · timelines · motion" },
+    { name: "FIGMA", hint: "frames · components · systems" },
+    { name: "AI TOOLS", hint: "prompts · generation · iteration" },
+  ];
 
   return (
-    <section className="home-featured-work" id="featured">
-      <div className="home-featured-header">
-        <div>
-          <span className="notes-label" style={{ display: "block", marginBottom: "8px" }}>
-            EXHIBITION HIGHLIGHTS
-          </span>
-          <h2 className="home-featured-title">
-            FEATURED
-            <br />
-            <em>PROJECTS.</em>
-          </h2>
+    <>
+      {/* ── SELECTED WORK ── */}
+      <section className="home-selected" id="selected">
+        <RevealOnScroll>
+          <div className="home-section-bar">
+            <span className="home-section-label">SELECTED WORK</span>
+            <span className="home-section-rule" />
+          </div>
+        </RevealOnScroll>
+
+        <div className="home-selected-grid">
+          {selectedWork.map((p, i) => {
+            const pMeta = meta[p];
+            const repId = REPRESENTATIVE_MEDIA[p];
+            const repItem = media.find((m) => m.id === repId);
+            const isHero = i === 0; // Trident Group is hero spanning full width
+            const displayMedia =
+              p === "Trident Group"
+                ? media.find((m) => m.id === "tr-v8") || media.find((m) => m.project === p && m.type === "video")
+                : repItem || media.find((m) => m.project === p && m.src) || media.find((m) => m.project === p && m.type === "video");
+
+            const isVideo = displayMedia?.type === "video";
+            const cursorLabel = isVideo ? "PLAY" : "VIEW";
+
+            return (
+              <RevealOnScroll
+                key={p}
+                delay={i * 0.08}
+                className={isHero ? "home-sel-hero-col" : "home-sel-pair-col"}
+              >
+                <button
+                  className={`home-sel-card ${isHero ? "home-sel-hero" : "home-sel-pair"}`}
+                  style={{ "--accent": pMeta?.accent } as React.CSSProperties}
+                  onClick={() => onNavigate(`/work/${slug(p)}`)}
+                  data-cursor={cursorLabel}
+                >
+                  <div className="home-sel-media">
+                    {isVideo && (
+                      <span className="home-sel-cue">▶ PREVIEW</span>
+                    )}
+                    {displayMedia?.type === "video" ? (
+                      <video
+                        src={displayMedia.videoSrc}
+                        poster={displayMedia.src || undefined}
+                        muted
+                        loop
+                        playsInline
+                        autoPlay
+                      />
+                    ) : displayMedia ? (
+                      <img src={displayMedia.src} alt={p} loading={isHero ? "eager" : "lazy"} />
+                    ) : null}
+                  </div>
+                  <div className="home-sel-info">
+                    <div className="home-sel-info-left">
+                      <h3 className="home-sel-name">{p}</h3>
+                      {isHero && (
+                        <span className="home-sel-sub">CHRISTMAS BRAND FILM / ANIMATION</span>
+                      )}
+                    </div>
+                    <div className="home-sel-info-right">
+                      <span className="home-sel-tag">{pMeta?.tag}</span>
+                      <span className="home-sel-type">{isVideo ? "▶ MOTION" : "STILL"}</span>
+                    </div>
+                  </div>
+                </button>
+              </RevealOnScroll>
+            );
+          })}
         </div>
-        <button
-          className="home-view-all-link"
-          onClick={() => onNavigate("/work")}
-          data-cursor="ARCHIVE"
-        >
-          VIEW ALL WORK <span>→</span>
-        </button>
-      </div>
 
-      <div className="home-featured-grid">
-        {featured.map((p) => {
-          const pMeta = meta[p];
-          const firstImage = media.find((m) => m.project === p && m.src);
-          const firstVideo = media.find((m) => m.project === p && m.type === "video");
-          const displayMedia = firstImage || firstVideo;
-
-          return (
+        <RevealOnScroll delay={0.1}>
+          <div className="home-view-all-row">
             <button
-              key={p}
-              className="home-featured-card"
-              style={{ "--accent": pMeta?.accent } as React.CSSProperties}
-              onClick={() => onNavigate(`/work/${slug(p)}`)}
-              data-cursor="VIEW"
+              className="home-view-all-link"
+              onClick={() => onNavigate("/work")}
+              data-cursor="ARCHIVE"
             >
-              <div className="home-card-media">
-                {displayMedia?.type === "video" ? (
-                  <video
-                    src={displayMedia.videoSrc}
-                    poster={displayMedia.src || undefined}
-                    muted
-                    loop
-                    playsInline
-                    autoPlay
-                  />
-                ) : displayMedia ? (
-                  <img src={displayMedia.src} alt={p} loading="lazy" />
-                ) : null}
-              </div>
-              <div className="home-card-meta">
-                <h3 className="home-card-name">{p}</h3>
-                <span className="home-card-tag">{pMeta?.tag}</span>
-              </div>
+              VIEW ALL WORK <span>→</span>
             </button>
-          );
-        })}
-      </div>
-    </section>
+          </div>
+        </RevealOnScroll>
+      </section>
+
+      {/* ── CREATIVE FRAGMENT (editorial interruption) ── */}
+      <RevealOnScroll className="home-fragment">
+        <div className="fragment-inner">
+          <span className="fragment-mark fragment-mark-tl" />
+          <span className="fragment-mark fragment-mark-tr" />
+          <span className="fragment-mark fragment-mark-bl" />
+          <span className="fragment-mark fragment-mark-br" />
+          <div className="fragment-line" />
+          <p className="fragment-text">IDEA → FRAME → MOTION</p>
+          <span className="fragment-note">visual development — 2024–26</span>
+        </div>
+      </RevealOnScroll>
+
+      {/* ── WHO IS ANUJ? ── */}
+      <section className="home-who">
+        <RevealOnScroll>
+          <div className="home-section-bar">
+            <span className="home-section-label">WHO IS ANUJ?</span>
+            <span className="home-section-rule" />
+          </div>
+        </RevealOnScroll>
+
+        <div className="home-who-content">
+          <RevealOnScroll delay={0.05}>
+            <h2 className="home-who-headline">
+              I'M JUST A KID<br />
+              WITH AN IMAGINATION<br />
+              <em>THAT WON'T SIT STILL.</em>
+            </h2>
+          </RevealOnScroll>
+          <RevealOnScroll delay={0.15}>
+            <p className="home-who-body">
+              Curiosity, experimentation, and visual storytelling.
+              Give me a problem, a blank canvas, or something slightly
+              ridiculous — I'll figure out where to take it.
+            </p>
+          </RevealOnScroll>
+        </div>
+      </section>
+
+      {/* ── HOW I THINK ── */}
+      <section className="home-principles">
+        <RevealOnScroll>
+          <div className="home-section-bar">
+            <span className="home-section-label">HOW I THINK</span>
+            <span className="home-section-rule" />
+          </div>
+        </RevealOnScroll>
+
+        <div className="home-principles-list">
+          {principles.map((p, i) => (
+            <RevealOnScroll key={p.word} delay={i * 0.06}>
+              <div className="home-principle">
+                <h3 className="principle-word">{p.word}</h3>
+                <p className="principle-line">{p.line}</p>
+              </div>
+            </RevealOnScroll>
+          ))}
+        </div>
+      </section>
+
+      {/* ── TOOLS / CREATIVE VOCABULARY ── */}
+      <section className="home-tools">
+        <RevealOnScroll>
+          <div className="home-section-bar">
+            <span className="home-section-label">TOOLS</span>
+            <span className="home-section-rule" />
+          </div>
+        </RevealOnScroll>
+
+        <div className="home-tools-list">
+          {tools.map((t, i) => (
+            <RevealOnScroll key={t.name} delay={i * 0.04}>
+              <div className="home-tool" data-cursor={t.name}>
+                <span className="tool-name">{t.name}</span>
+                <span className="tool-hint">{t.hint}</span>
+              </div>
+            </RevealOnScroll>
+          ))}
+        </div>
+      </section>
+
+      {/* ── CREATIVE FRAGMENT 2 (small) ── */}
+      <RevealOnScroll className="home-fragment home-fragment-sm">
+        <div className="fragment-inner fragment-inner-sm">
+          <span className="fragment-mark fragment-mark-tl" />
+          <span className="fragment-mark fragment-mark-br" />
+          <p className="fragment-text">rough → refined</p>
+        </div>
+      </RevealOnScroll>
+
+      {/* ── MORE FROM THE ARCHIVE ── */}
+      <section className="home-archive">
+        <RevealOnScroll>
+          <div className="home-section-bar">
+            <span className="home-section-label">MORE FROM THE ARCHIVE</span>
+            <span className="home-section-rule" />
+          </div>
+        </RevealOnScroll>
+
+        <div className="home-archive-grid">
+          {archiveWork.map((p, i) => {
+            const pMeta = meta[p];
+            const repId = REPRESENTATIVE_MEDIA[p];
+            const repItem = media.find((m) => m.id === repId);
+            const displayMedia = repItem || media.find((m) => m.project === p && m.src);
+
+            return (
+              <RevealOnScroll key={p} delay={i * 0.06}>
+                <button
+                  className="home-archive-card"
+                  style={{ "--accent": pMeta?.accent } as React.CSSProperties}
+                  onClick={() => onNavigate(`/work/${slug(p)}`)}
+                  data-cursor="ENTER"
+                >
+                  <div className="home-archive-media">
+                    {displayMedia?.type === "video" ? (
+                      <video
+                        src={displayMedia.videoSrc}
+                        poster={displayMedia.src || undefined}
+                        muted loop playsInline autoPlay
+                      />
+                    ) : displayMedia ? (
+                      <img src={displayMedia.src} alt={p} loading="lazy" />
+                    ) : null}
+                  </div>
+                  <div className="home-archive-info">
+                    <h3 className="home-archive-name">{p}</h3>
+                    <span className="home-archive-cta">VIEW PROJECT ↗</span>
+                  </div>
+                </button>
+              </RevealOnScroll>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ── CONTACT CTA (final frame of the homepage) ── */}
+      <section className="home-contact-cta">
+        <RevealOnScroll>
+          <div className="home-cta-inner">
+            <span className="home-section-label">WHAT'S NEXT?</span>
+            <h2 className="home-cta-title">
+              LET'S CREATE<br />
+              SOMETHING <em>MEANINGFUL.</em>
+            </h2>
+            <button
+              className="home-cta-btn"
+              onClick={() => onNavigate("/contact")}
+              data-cursor="CONTACT"
+            >
+              GET IN TOUCH <span>→</span>
+            </button>
+          </div>
+        </RevealOnScroll>
+      </section>
+    </>
   );
 }
 
@@ -1579,26 +1832,42 @@ function WorkArchivePage({
   projects?: string[];
   onNavigate: (path: string) => void;
 }) {
+  const isReduced = Boolean(useReducedMotion());
+
   return (
     <div className="page-container work-page">
       <header className="page-header work-page-header">
-        <h1 className="page-title work-title">WORK</h1>
+        <motion.h1
+          className="page-title work-title"
+          initial={{ opacity: 0, y: isReduced ? 0 : 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.04, ease: [0.16, 1, 0.3, 1] }}
+        >
+          WORK
+        </motion.h1>
       </header>
 
       <div className="work-gallery-grid">
-        {VISIBLE_PROJECT_SEQUENCE.map((projectName) => {
+        {VISIBLE_PROJECT_SEQUENCE.map((projectName, idx) => {
           const repId = REPRESENTATIVE_MEDIA[projectName];
           const repItem = media.find((m) => m.id === repId);
           const pMeta = meta[projectName];
           const isLandscape = repItem?.orientation === "landscape";
 
           return (
-            <article
+            <motion.article
               key={projectName}
               className={`work-gallery-card ${isLandscape ? "is-landscape-span" : "is-portrait-card"}`}
               style={{ "--accent": pMeta?.accent } as React.CSSProperties}
               onClick={() => onNavigate(`/work/${slug(projectName)}`)}
               data-cursor="ENTER"
+              initial={{ opacity: 0, y: isReduced ? 0 : 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.45,
+                delay: 0.08 + Math.min(idx, 6) * 0.04,
+                ease: [0.16, 1, 0.3, 1],
+              }}
             >
               <div className="work-gallery-media">
                 {repItem?.type === "video" ? (
@@ -1625,7 +1894,7 @@ function WorkArchivePage({
                 <h2 className="work-gallery-title">{projectName}</h2>
                 <span className="work-gallery-cta">VIEW PROJECT ↗</span>
               </div>
-            </article>
+            </motion.article>
           );
         })}
       </div>
@@ -1647,6 +1916,7 @@ function ProjectDetailPage({
   projects?: string[];
   onNavigate: (path: string) => void;
 }) {
+  const isReduced = Boolean(useReducedMotion());
   const items = useMemo(() => media.filter((x) => x.project === project), [project]);
   const pMeta = meta[project];
 
@@ -1681,7 +1951,14 @@ function ProjectDetailPage({
         onBackToWork={() => onNavigate("/work")}
       />
 
-      <div className="project-exhibition-flow">{renderProjectContent(project, items)}</div>
+      <motion.div
+        className="project-exhibition-flow"
+        initial={{ opacity: 0, y: isReduced ? 0 : 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {renderProjectContent(project, items)}
+      </motion.div>
 
       <div className="next-project-divider" />
       <section className="next-project-transition">
@@ -1704,16 +1981,35 @@ function ProjectDetailPage({
    - Minimal, dark, editorial
    ═══════════════════════════════════════════ */
 function NotFoundPage({ onNavigate }: { onNavigate: (path: string) => void }) {
+  const isReduced = Boolean(useReducedMotion());
+
   return (
     <div className="page-container not-found-page">
       <header className="page-header not-found-header">
-        <span className="not-found-eyebrow">404</span>
-        <h1 className="page-title not-found-title">
+        <motion.span
+          className="not-found-eyebrow"
+          initial={{ opacity: 0, y: isReduced ? 0 : 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.04, ease: [0.16, 1, 0.3, 1] }}
+        >
+          404
+        </motion.span>
+        <motion.h1
+          className="page-title not-found-title"
+          initial={{ opacity: 0, y: isReduced ? 0 : 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+        >
           THIS PAGE
           <br />
           <em>WANDERED OFF.</em>
-        </h1>
-        <div className="not-found-cta">
+        </motion.h1>
+        <motion.div
+          className="not-found-cta"
+          initial={{ opacity: 0, y: isReduced ? 0 : 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+        >
           <button
             className="not-found-btn"
             onClick={() => onNavigate("/work")}
@@ -1721,175 +2017,205 @@ function NotFoundPage({ onNavigate }: { onNavigate: (path: string) => void }) {
           >
             Back to work <span>→</span>
           </button>
-        </div>
+        </motion.div>
       </header>
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════
-   PROCESS PAGE (/process)
-   ═══════════════════════════════════════════ */
-function ProcessPage() {
-  const studies = [
-    {
-      brand: "Trident Group",
-      title: "TACTILE PACKAGING & TEXTILE IDENTITY",
-      step: "01",
-      steps: [
-        "THE IDEA: Tactile sustainability",
-        "VISUAL EXPLORATION: Earth tones & raw pulp",
-        "DESIGN SYSTEM: Heavy grid & minimal typography",
-        "MOTION: Fluid unravelling lines",
-      ],
-    },
-    {
-      brand: "Halonix",
-      title: "HIGH-CONTRAST ILLUMINATION CAMPAIGNS",
-      step: "02",
-      steps: [
-        "THE IDEA: Light as drama",
-        "VISUAL EXPLORATION: Deep black vs bright amber",
-        "DESIGN SYSTEM: Radiant highlights",
-        "MOTION: Pulsing light transitions",
-      ],
-    },
-    {
-      brand: "Standard Electricals",
-      title: "PRECISION MOTION FOR CONSUMER APPLIANCES",
-      step: "03",
-      steps: [
-        "THE IDEA: Geometry meets function",
-        "VISUAL EXPLORATION: Technical wireframes",
-        "DESIGN SYSTEM: Clean Swiss rules",
-        "MOTION: Linear mechanical camera tracking",
-      ],
-    },
-  ];
-
-  return (
-    <div className="page-container">
-      <header className="page-header">
-        <span className="notes-label" style={{ display: "block", marginBottom: "12px" }}>
-          IDEA LAB
-        </span>
-        <h1 className="page-title">
-          FROM THOUGHT
-          <br />
-          <em>TO FRAME.</em>
-        </h1>
-        <p className="page-lead">
-          These studies reconstruct the creative thinking and design process around selected briefs.
-          They are labelled explicitly as concept reconstructions.
-        </p>
-      </header>
-
-      <div className="process-list">
-        {studies.map((s, i) => {
-          const item = media.find((x) => x.project === s.brand);
-          return (
-            <article key={s.brand} className="process-study-card">
-              <div className="study-copy">
-                <div className="study-badge">CONCEPT RECONSTRUCTION // 0{i + 1}</div>
-                <h3>{s.brand}</h3>
-                <p className="study-title">{s.title}</p>
-                <div className="study-step-flow">
-                  {s.steps.map((st, idx) => (
-                    <div key={idx} className="study-step-row">
-                      <span className="step-num">0{idx + 1}</span>
-                      <span className="step-text">{st}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="study-board">
-                {item && <MediaCard item={item} variant="feature" aspect="landscape" />}
-                <div className="sketch-lines">
-                  <i />
-                  <i />
-                  <i />
-                </div>
-                <div className="sketch-note">
-                  RECONSTRUCTED
-                  <br />
-                  VISUAL STUDY
-                </div>
-                <div className="sketch-arrow">
-                  EXPLORATION
-                  <br />
-                  DIRECTION ↗
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+/* Process page removed — process personality is now part of the homepage narrative */
 
 /* ═══════════════════════════════════════════
    INFO PAGE (/info)
+   - Concise editorial profile of the designer
+   - B&W portrait cutout as primary visual anchor (40–45% width)
+   - Compact profile, personal statement, tools & minimal timeline
    ═══════════════════════════════════════════ */
-function InfoPage() {
+function InfoPage({ onNavigate }: { onNavigate?: (path: string) => void }) {
+  const isReduced = Boolean(useReducedMotion());
+  const { scrollY } = useScroll();
+  const portraitY = useTransform(scrollY, [0, 500], [0, -24]);
+  const smoothY = useSpring(portraitY, { stiffness: 100, damping: 20 });
+
+  const profileItems = [
+    { label: "ROLE", value: "Creative Supervisor" },
+    { label: "FOCUS", value: "Graphic Design / Campaigns / Motion / Visual Storytelling" },
+    { label: "TOOLS", value: "Photoshop / Illustrator / After Effects / Figma / AI" },
+    { label: "EXPERIENCE", value: "May 2024 — Present" },
+  ];
+
+  const toolsList = ["PHOTOSHOP", "ILLUSTRATOR", "AFTER EFFECTS", "FIGMA", "AI"];
+
+  const timelineEntries = [
+    { period: "MAY 2024 — FEB 2025", company: "Horizon Visuals Pvt Ltd" },
+    { period: "FEB 2025 — PRESENT", company: "Xandubrands Pvt Ltd" },
+  ];
+
   return (
-    <div className="page-container info-page">
-      <header className="page-header info-page-header">
-        <h1 className="page-title info-title">
-          I’M JUST A KID
-          <br />
-          WITH AN IMAGINATION
-          <br />
-          <em>THAT WON’T SIT STILL.</em>
-        </h1>
-        <p className="page-lead info-lead">
-          Curiosity, experimentation, and visual storytelling. Give me a problem, a blank canvas,
-          or something slightly ridiculous — I'll figure out where to take it.
-          If it’s interesting, I’m interested.
-        </p>
-      </header>
+    <div className="page-container info-page-container">
+      <div className="info-editorial-grid">
+        {/* LEFT COLUMN: Narrative & Editorial Details */}
+        <div className="info-content-col">
+          {/* 1. Intro / Identity */}
+          <header className="info-header">
+            <motion.span
+              className="info-label"
+              initial={{ opacity: 0, y: isReduced ? 0 : 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.04, ease: [0.16, 1, 0.3, 1] }}
+            >
+              ABOUT / ANUJ
+            </motion.span>
+            <motion.h1
+              className="info-hero-heading"
+              initial={{ opacity: 0, y: isReduced ? 0 : 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+            >
+              Creative Supervisor<br />
+              <em>& Visual Designer</em>
+            </motion.h1>
+            <motion.p
+              className="info-intro-copy"
+              initial={{ opacity: 0, y: isReduced ? 0 : 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.13, ease: [0.16, 1, 0.3, 1] }}
+            >
+              Multidisciplinary designer working across graphic design, brand campaigns, visual storytelling, and motion direction. Comfortable with the blank canvas, curious by default, and driven to turn complex ideas into striking visual character.
+            </motion.p>
+          </header>
 
-      <div className="info-editorial-layout">
-        <div className="info-block">
-          <span className="info-block-label">BACKGROUND</span>
-          <div className="info-timeline">
-            <div className="info-timeline-entry">
-              <span className="info-timeline-date">MAY 2024 — FEB 2025</span>
-              <h3 className="info-timeline-role">HV Production / Horizon Visuals</h3>
-              <p className="info-timeline-desc">
-                Concert posters, marketing, social media campaigns
-              </p>
+          {/* Mobile Portrait Anchor (shown on mobile beneath intro) */}
+          <motion.div
+            className="info-mobile-portrait"
+            initial={{ opacity: 0, y: isReduced ? 0 : 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <img
+              src="/media/info/anuj-portrait.png"
+              alt="Anuj — Creative Supervisor & Visual Designer"
+              className="info-portrait-img"
+              loading="eager"
+            />
+          </motion.div>
+
+          <div className="info-divider" />
+
+          {/* 3. Quick Profile */}
+          <motion.section
+            className="info-section info-profile-section"
+            initial={{ opacity: 0, y: isReduced ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <span className="info-section-kicker">PROFILE</span>
+            <dl className="info-profile-grid">
+              {profileItems.map((item) => (
+                <div key={item.label} className="info-profile-row">
+                  <dt className="info-profile-label">{item.label}</dt>
+                  <dd className="info-profile-value">{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </motion.section>
+
+          <div className="info-divider" />
+
+          {/* 4. Short Personal Statement */}
+          <motion.section
+            className="info-section info-statement-section"
+            initial={{ opacity: 0, y: isReduced ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <span className="info-section-kicker">APPROACH</span>
+            <blockquote className="info-statement-quote">
+              “I like taking an idea apart, finding the interesting bit, and building it into something people want to look at twice.”
+            </blockquote>
+          </motion.section>
+
+          <div className="info-divider" />
+
+          {/* 5. Tools / Practice */}
+          <motion.section
+            className="info-section info-tools-section"
+            initial={{ opacity: 0, y: isReduced ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.26, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <span className="info-section-kicker">PRACTICE</span>
+            <div className="info-tools-strip">
+              {toolsList.map((t, idx) => (
+                <React.Fragment key={t}>
+                  <span className="info-tool-pill" data-cursor="TOOL">{t}</span>
+                  {idx < toolsList.length - 1 && <span className="info-tool-dot">/</span>}
+                </React.Fragment>
+              ))}
             </div>
-            <div className="info-timeline-entry">
-              <span className="info-timeline-date">FEB 2025 — PRESENT</span>
-              <h3 className="info-timeline-role">Xanadu Brands</h3>
-              <p className="info-timeline-desc">
-                Expanded from Photoshop & Illustrator into After Effects, video editing and motion
-              </p>
+          </motion.section>
+
+          <div className="info-divider" />
+
+          {/* 6. Experience / Timeline */}
+          <motion.section
+            className="info-section info-experience-section"
+            initial={{ opacity: 0, y: isReduced ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.30, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <span className="info-section-kicker">EXPERIENCE</span>
+            <div className="info-experience-list">
+              {timelineEntries.map((e) => (
+                <div key={e.period} className="info-experience-item">
+                  <span className="info-experience-period">{e.period}</span>
+                  <span className="info-experience-company">{e.company}</span>
+                </div>
+              ))}
             </div>
-          </div>
+          </motion.section>
+
+          <div className="info-divider" />
+
+          {/* 7. Ending CTA */}
+          <motion.section
+            className="info-cta-section"
+            initial={{ opacity: 0, y: isReduced ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.34, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <p className="info-cta-lead">Have something worth making?</p>
+            <button
+              className="info-cta-btn"
+              onClick={() => onNavigate ? onNavigate("/contact") : (window.location.href = "/contact")}
+              data-cursor="CONTACT"
+            >
+              <span>LET’S TALK</span>
+              <span className="info-cta-arrow">→</span>
+            </button>
+          </motion.section>
         </div>
 
-        <div className="info-block">
-          <span className="info-block-label">TOOLS</span>
-          <div className="info-tools-editorial">
-            <span>PHOTOSHOP</span>
-            <span className="tool-sep">/</span>
-            <span>ILLUSTRATOR</span>
-            <span className="tool-sep">/</span>
-            <span>AFTER EFFECTS</span>
-            <span className="tool-sep">/</span>
-            <span>FIGMA</span>
-            <span className="tool-sep">/</span>
-            <span>AI TOOLS</span>
-          </div>
-        </div>
-
-        <div className="info-block info-block-stance">
-          <span className="info-block-label">STANCE</span>
-          <p className="info-stance-text">Bring it on.</p>
-        </div>
+        {/* RIGHT COLUMN: Desktop Portrait Visual Anchor */}
+        <motion.aside
+          className="info-portrait-col"
+          initial={{ opacity: 0, y: isReduced ? 0 : 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <motion.div
+            className="info-portrait-wrapper"
+            style={{ y: smoothY }}
+            data-cursor="ANUJ"
+          >
+            <img
+              src="/media/info/anuj-portrait.png"
+              alt="Anuj — Creative Supervisor & Visual Designer"
+              className="info-portrait-img"
+              loading="eager"
+            />
+          </motion.div>
+        </motion.aside>
       </div>
     </div>
   );
@@ -1899,6 +2225,7 @@ function InfoPage() {
    CONTACT PAGE (/contact)
    ═══════════════════════════════════════════ */
 function ContactPage() {
+  const isReduced = Boolean(useReducedMotion());
   const [sent, setSent] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -1925,21 +2252,43 @@ function ContactPage() {
       <div className="contact-editorial-header">
         {/* Left Side: Headline & Narrative */}
         <div className="contact-intro-col">
-          <span className="contact-tag">CONTACT</span>
-          <h1 className="contact-hero-title">
+          <motion.span
+            className="contact-tag"
+            initial={{ opacity: 0, y: isReduced ? 0 : 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.04, ease: [0.16, 1, 0.3, 1] }}
+          >
+            CONTACT
+          </motion.span>
+          <motion.h1
+            className="contact-hero-title"
+            initial={{ opacity: 0, y: isReduced ? 0 : 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+          >
             LET’S CREATE
             <br />
             SOMETHING MEANINGFUL.
-          </h1>
-          <p className="contact-lead-text">
+          </motion.h1>
+          <motion.p
+            className="contact-lead-text"
+            initial={{ opacity: 0, y: isReduced ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.14, ease: [0.16, 1, 0.3, 1] }}
+          >
             I’m always open to new ideas, collaborations and opportunities.
             <br />
             If you have a project in mind, just say hello.
-          </p>
+          </motion.p>
         </div>
 
         {/* Vertical Divider & Right Side: Other Ways to Reach Me */}
-        <div className="contact-info-col">
+        <motion.div
+          className="contact-info-col"
+          initial={{ opacity: 0, y: isReduced ? 0 : 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+        >
           <div className="contact-info-block">
             <span className="contact-info-heading">OTHER WAYS TO REACH ME</span>
 
@@ -1985,13 +2334,18 @@ function ContactPage() {
               </a>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       <div className="contact-editorial-divider" />
 
       {/* Form Section */}
-      <div className="contact-form-section">
+      <motion.div
+        className="contact-form-section"
+        initial={{ opacity: 0, y: isReduced ? 0 : 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      >
         {sent ? (
           <div className="contact-sent-card">
             <span className="contact-tag">MESSAGE RECEIVED</span>
@@ -2098,7 +2452,7 @@ function ContactPage() {
             </div>
           </form>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -2109,6 +2463,12 @@ function ContactPage() {
 function App() {
   const [loading, setLoading] = useState(true);
   const [route, setRoute] = useState<Route>(() => parsePath(window.location.pathname));
+  const [navActiveRoute, setNavActiveRoute] = useState<Route>(route);
+  const [transitionStage, setTransitionStage] = useState<"idle" | "exiting" | "entering">("idle");
+  const isTransitioningRef = useRef(false);
+  const isFirstMountRef = useRef(true);
+  const shouldReduceMotion = useReducedMotion();
+  const prefersReduced = Boolean(shouldReduceMotion);
 
   // Dynamic SEO management
   useDocumentSEO(route);
@@ -2120,19 +2480,109 @@ function App() {
   // Visible projects strictly following the approved canonical sequence
   const visibleProjects = VISIBLE_PROJECT_SEQUENCE;
 
-  const navigate = useCallback((path: string) => {
-    window.history.pushState({}, "", path);
-    setRoute(parsePath(path));
-    window.scrollTo({ top: 0, behavior: "instant" });
-  }, []);
+  const navigate = useCallback(
+    (targetPath: string) => {
+      // 1. If clicking current active route: do not run a pointless transition
+      if (isSamePath(route, targetPath)) {
+        return;
+      }
+      // 2. Prevent overlapping transitions
+      if (isTransitioningRef.current) {
+        return;
+      }
 
+      const nextRoute = parsePath(targetPath);
+      isTransitioningRef.current = true;
+      setNavActiveRoute(nextRoute);
+      setTransitionStage("exiting");
+
+      const exitDuration = prefersReduced ? 100 : 180;
+      const enterDuration = prefersReduced ? 150 : 340;
+
+      setTimeout(() => {
+        window.history.pushState({}, "", targetPath);
+        setRoute(nextRoute);
+
+        // Instantaneous scroll reset behind the dark shutter
+        document.documentElement.style.scrollBehavior = "auto";
+        window.scrollTo({ top: 0, behavior: "instant" });
+        document.documentElement.style.scrollBehavior = "";
+
+        setTransitionStage("entering");
+
+        setTimeout(() => {
+          setTransitionStage("idle");
+          isTransitioningRef.current = false;
+        }, enterDuration);
+      }, exitDuration);
+    },
+    [route, prefersReduced]
+  );
+
+  // Browser back/forward navigation support
   useEffect(() => {
     const onPopState = () => {
-      setRoute(parsePath(window.location.pathname));
-      window.scrollTo({ top: 0, behavior: "instant" });
+      const targetPath = window.location.pathname;
+      if (isSamePath(route, targetPath)) return;
+      if (isTransitioningRef.current) return;
+
+      const nextRoute = parsePath(targetPath);
+      isTransitioningRef.current = true;
+      setNavActiveRoute(nextRoute);
+      setTransitionStage("exiting");
+
+      const exitDuration = prefersReduced ? 100 : 180;
+      const enterDuration = prefersReduced ? 150 : 340;
+
+      setTimeout(() => {
+        setRoute(nextRoute);
+
+        document.documentElement.style.scrollBehavior = "auto";
+        window.scrollTo({ top: 0, behavior: "instant" });
+        document.documentElement.style.scrollBehavior = "";
+
+        setTransitionStage("entering");
+
+        setTimeout(() => {
+          setTransitionStage("idle");
+          isTransitioningRef.current = false;
+        }, enterDuration);
+      }, exitDuration);
     };
+
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
+  }, [route, prefersReduced]);
+
+  // Intercept any internal anchor clicks gracefully
+  useEffect(() => {
+    const handleAnchorClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement).closest("a");
+      if (!target) return;
+      const href = target.getAttribute("href");
+      if (!href) return;
+      if (
+        href.startsWith("http://") ||
+        href.startsWith("https://") ||
+        href.startsWith("mailto:") ||
+        href.startsWith("tel:") ||
+        href.startsWith("#") ||
+        target.hasAttribute("download") ||
+        target.getAttribute("target") === "_blank"
+      ) {
+        return;
+      }
+      if (href.startsWith("/")) {
+        e.preventDefault();
+        navigate(href);
+      }
+    };
+    document.addEventListener("click", handleAnchorClick);
+    return () => document.removeEventListener("click", handleAnchorClick);
+  }, [navigate]);
+
+  useEffect(() => {
+    isFirstMountRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -2171,39 +2621,79 @@ function App() {
 
   const lightboxValue = useMemo(() => ({ openLightbox }), [openLightbox]);
 
+  const pageContainerVariants = {
+    initial: {
+      opacity: 0,
+      y: prefersReduced ? 0 : 16,
+      scale: prefersReduced ? 1 : 0.99,
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: prefersReduced ? 0.15 : 0.36,
+        ease: [0.16, 1, 0.3, 1],
+      },
+    },
+    exit: {
+      opacity: 0,
+      y: prefersReduced ? 0 : -8,
+      scale: prefersReduced ? 1 : 0.988,
+      transition: {
+        duration: prefersReduced ? 0.1 : 0.18,
+        ease: [0.4, 0, 0.2, 1],
+      },
+    },
+  };
+
   return (
     <LightboxContext.Provider value={lightboxValue}>
       <Loader done={!loading} />
       <Cursor />
 
-      <SiteNavigation currentRoute={route} onNavigate={navigate} />
+      {/* Cinematic dark shutter layer */}
+      <div
+        className={`cinematic-shutter stage-${transitionStage}`}
+        aria-hidden="true"
+      />
 
-      <main>
-        {route.page === "home" && (
-          <>
-            <Hero ready={!loading} onExploreWork={() => navigate("/work")} />
-            <HomeFeaturedWork onNavigate={navigate} />
-          </>
-        )}
+      <SiteNavigation currentRoute={navActiveRoute} onNavigate={navigate} />
 
-        {route.page === "work" && (
-          <WorkArchivePage onNavigate={navigate} />
-        )}
+      <main className="main-viewport">
+        <motion.div
+          key={getRouteKey(route)}
+          className="page-transition-wrapper"
+          variants={pageContainerVariants}
+          initial={isFirstMountRef.current ? false : "initial"}
+          animate={transitionStage === "exiting" ? "exit" : "animate"}
+        >
+          {route.page === "home" && (
+            <>
+              <Hero ready={!loading} onExploreWork={() => navigate("/work")} />
+              <HomeNarrative onNavigate={navigate} />
+            </>
+          )}
 
-        {route.page === "project" && (
-          <ProjectDetailPage
-            project={route.project}
-            onNavigate={navigate}
-          />
-        )}
+          {route.page === "work" && (
+            <WorkArchivePage onNavigate={navigate} />
+          )}
 
-        {route.page === "process" && <ProcessPage />}
+          {route.page === "project" && (
+            <ProjectDetailPage
+              project={route.project}
+              onNavigate={navigate}
+            />
+          )}
 
-        {route.page === "info" && <InfoPage />}
+          {/* Process page removed — integrated into homepage */}
 
-        {route.page === "contact" && <ContactPage />}
+          {route.page === "info" && <InfoPage onNavigate={navigate} />}
 
-        {route.page === "not-found" && <NotFoundPage onNavigate={navigate} />}
+          {route.page === "contact" && <ContactPage />}
+
+          {route.page === "not-found" && <NotFoundPage onNavigate={navigate} />}
+        </motion.div>
       </main>
 
       {/* Premium Media Lightbox Modal */}

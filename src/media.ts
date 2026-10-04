@@ -147,11 +147,12 @@ export const media: MediaItem[] = [
 
 
   // ════════════════════════════════════════
-  // Trident Group  (2 images · 7 videos)
+  // Trident Group  (2 images · 8 videos)
   // ════════════════════════════════════════
   img("tr-01","Trident Group","trident sleep expo copy.jpg"),
   img("tr-02","Trident Group","what-is-air-technology-carousel-copy.jpg"),
 
+  vid("tr-v8","Trident Group","trident-christmas-film.mp4","trident/trident-christmas-poster.png"),
   vid("tr-v1","Trident Group","independece day 2025 trident paper.mp4","trident-group/19461b30bbfab2ef.jpg"),
   vid("tr-v2","Trident Group","paper expo closer to nature_8.mp4","trident-group/8c60faf4005f7e93.jpg"),
   vid("tr-v3","Trident Group","trident group dusshera ad_3.mp4","trident-group/758d64fa20b72b9b.jpg"),
