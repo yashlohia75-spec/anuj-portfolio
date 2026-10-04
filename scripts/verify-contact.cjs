@@ -25,7 +25,9 @@ assert(mainTsx.includes('OTHER WAYS TO REACH ME'), 'Must include OTHER WAYS TO R
 assert(mainTsx.includes('yashlohia75@gmail.com'), 'Must include email');
 assert(mainTsx.includes('India'), 'Must include location');
 assert(mainTsx.includes('LinkedIn ↗'), 'Must include LinkedIn');
+assert(mainTsx.includes('https://www.linkedin.com/in/anuj-335098281'), 'Must include exact LinkedIn URL');
 assert(mainTsx.includes('Behance ↗'), 'Must include Behance');
+assert(mainTsx.includes('https://www.behance.net/anujkumar564'), 'Must include exact Behance URL');
 console.log('✅ [2/6] Verified contact information and links.');
 
 // 3. Form fields and layout

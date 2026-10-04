@@ -1509,7 +1509,7 @@ function Hero({
         </motion.button>
       </div>
 
-      <div style={{ height: "24px" }} />
+      <div className="hero-bottom-spacer" />
     </section>
   );
 }
@@ -2311,7 +2311,7 @@ function ContactPage() {
             <div className="contact-info-item">
               <span className="contact-field-label">LINKEDIN</span>
               <a
-                href="https://www.linkedin.com"
+                href="https://www.linkedin.com/in/anuj-335098281"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="contact-info-link"
@@ -2324,7 +2324,7 @@ function ContactPage() {
             <div className="contact-info-item">
               <span className="contact-field-label">BEHANCE</span>
               <a
-                href="https://www.behance.net"
+                href="https://www.behance.net/anujkumar564"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="contact-info-link"
